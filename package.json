@@ -1,0 +1,45 @@
+{
+  "name": "bridge-ai",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "api:serve": "bunx nx run api:serve",
+    "api:build": "bunx nx run api:build",
+    "api:test": "bunx nx run api:test",
+    "api:lint": "bunx nx run api:lint",
+    "migration:generate": "bunx nx run api:typeorm:migration:generate",
+    "migration:run": "bunx nx run api:typeorm:migration:run",
+    "migration:revert": "bunx nx run api:typeorm:migration:revert",
+    "build:all": "bunx nx run-many --target=build --all",
+    "test:all": "bunx nx run-many --target=test --all",
+    "lint:all": "bunx nx run-many --target=lint --all"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.3.0",
+    "@nestjs/config": "^3.2.0",
+    "@nestjs/core": "^10.3.0",
+    "@nestjs/platform-fastify": "^10.3.0",
+    "@nestjs/terminus": "^10.2.3",
+    "@nestjs/typeorm": "^10.0.2",
+    "@nestjs/bull": "^10.2.1",
+    "bullmq": "^5.4.2",
+    "typeorm": "^0.3.20",
+    "pg": "^8.11.5",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@nx/js": "^19.0.0",
+    "@nx/node": "^19.0.0",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.5",
+    "@types/ws": "^8.5.12",
+    "nx": "^19.0.0",
+    "typescript": "^5.4.5"
+  }
+}
