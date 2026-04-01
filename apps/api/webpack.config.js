@@ -3,9 +3,9 @@ const { join } = require('path');
 const nodeExternals = require('webpack-node-externals');
 
 /**
- * Bundle the non-buildable workspace lib @bridge-ai/nest-core into the app.
- * Nx only auto-allowlists non-buildable libs when the repo uses TS "solution" style;
- * this repo uses tsconfig.base paths, so we explicitly allowlist nest-core here.
+ * Bundle non-buildable workspace libs into the app (production Docker image only
+ * copies dist + node_modules; workspace packages live as symlinks to ../../packages
+ * which are not present in the runner stage, so @bridge-ai/* must not stay external).
  */
 module.exports = composePlugins(
   withNx(),
@@ -15,10 +15,15 @@ module.exports = composePlugins(
       path: join(context.root, 'dist/apps/api'),
     };
     const modulesDir = join(context.root, 'node_modules');
+    const workspaceBridgeAi = [
+      /^@bridge-ai\/nest-core(\/.*)?$/,
+      /^@bridge-ai\/bridge-sdk(\/.*)?$/,
+      /^@bridge-ai\/gsd-sdk(\/.*)?$/,
+    ];
     config.externals = [
       nodeExternals({
         modulesDir,
-        allowlist: [/^@bridge-ai\/nest-core(\/.*)?$/],
+        allowlist: workspaceBridgeAi,
       }),
     ];
     return config;
