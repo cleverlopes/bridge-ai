@@ -74,6 +74,34 @@ jobs:
           DATABASE_URL: postgresql://bridge:bridge@localhost:5432/bridge_test
           REDIS_URL: redis://localhost:6379
 
+      - name: Check coverage thresholds
+        run: |
+          # Helper function to check coverage
+          check_coverage() {
+            local package=$1
+            local coverage_file="packages/$package/coverage/coverage-summary.json"
+            if [ -f "$coverage_file" ]; then
+              local lines=$(jq '.total.lines.pct' "$coverage_file")
+              echo "Coverage for $package: ${lines}%"
+              if (( $(echo "$lines < 80" | bc -l) )); then
+                echo "❌ $package coverage ${lines}% is below 80% threshold"
+                return 1
+              fi
+            fi
+            return 0
+          }
+          
+          result=0
+          check_coverage "gsd-sdk" || result=1
+          check_coverage "bridge-sdk" || result=1
+          check_coverage "nest-core" || result=1
+          
+          if [ $result -ne 0 ]; then
+            echo "❌ Coverage threshold enforcement failed"
+            exit 1
+          fi
+          echo "✅ All packages meet 80% coverage threshold"
+
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         if: always()
