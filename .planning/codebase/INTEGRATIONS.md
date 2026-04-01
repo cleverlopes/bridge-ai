@@ -23,9 +23,14 @@
   - SDK: `telegraf` 4.16.3
   - Auth: Token stored in KSM (Key Secrets Manager) under `telegram-bot-token` key
   - Implementation: `packages/nest-core/src/module/telegram/telegram-bot.service.ts`
-  - Commands: `/new`, `/done`, `/approve`, `/rewrite`, `/stop`, `/retry`, `/config`, `/status`, `/health`, `/project`, `/help`
+  - Commands (planned deterministic protocol):
+    - Context: `/projects`, `/project select <id|alias>`, `/project create <name>`, `/project info`
+    - Workflow: `/feature <desc>`, `/bug <desc>`, `/task <desc>`, `/status`, `/pause`, `/resume`, `/stop`
+    - Run control: `/run list`, `/run current`, `/run logs`, `/approve`, `/reject`, `/commit`
+    - Security: `/safe`, `/autonomy on|off`, `/lock`, `/unlock`, `/confirm <token>`
+    - Ops: `/help`, `/config`, `/health`
   - Allowed chat IDs: `TELEGRAM_ALLOWED_CHAT_IDS` (comma-separated, required)
-  - Features: Throttling (10 requests/60s per chat), conversation state tracking
+  - Features: Throttling (10 requests/60s per chat), active context per chat, intent parsing + normalization, telemetry-style updates
 
 **Custom Integrations:**
 - Obsidian Vault - Knowledge base and documentation
@@ -60,10 +65,11 @@
 
 **File Storage:**
 - Local filesystem (primary)
-  - Project workspaces: `volumes/workspaces/<projectId>/`
+  - Project workspaces (current): `volumes/workspaces/<projectId>/`
+  - Run workspaces (planned safe model): `volumes/workspaces/runs/<runId>/` (ephemeral per-run clones)
   - Obsidian vault: `volumes/obsidian/`
   - Used by: Obsidian sync, project workspace management
-  - Mounted in Docker: Read-write bind mounts
+  - Mounted in Docker: run workspaces are mounted; host repo is never mounted with write permissions
 
 **Caching:**
 - Redis 7 (via BullMQ)
@@ -109,8 +115,8 @@
 
 **Health Checks:**
 - Health module: `packages/nest-core/src/module/health/health.module.ts`
-- Endpoint: GET `/api/health` (via @nestjs/terminus)
-- Brain health check: AI provider availability test (generate "ok" prompt)
+- Endpoint: GET `/health` with custom JSON shape `{status, db, redis}` (not Terminus format)
+- Redis health currently uses BullMQ internals (fragile); planned: direct Redis ping via injected client
 
 ## CI/CD & Deployment
 
@@ -195,8 +201,32 @@ npm/bun run migration:revert   # Revert last migration
   - Container lifecycle: create, start, exec, stop, remove
   - Network management: create isolated bridge network `bridge-ai-projects`
   - Image: `bridge-ai-runner:latest` (custom sandbox runtime)
+  - Note: Runner image should be pinned (tag or digest) for supply-chain safety
   - Execution: Isolated, read-only filesystem with tmpfs (256MB)
   - Security: CapDrop ALL, no-new-privileges, user 1000 (UID isolation)
+
+## Git Integration (Planned: Workspace Onboarding + Safe Promotion)
+
+**Supported transports:**
+- SSH (recommended for VPS workflows)
+- HTTPS
+
+**Onboarding modes:**
+- Existing clone: register `workspace_path` and detect remote + base branch
+- Provision from scratch: clone `repo_url` into requested workspace path
+
+**Per-run isolation model:**
+- Each run uses an ephemeral workspace clone (optionally shallow)
+- The container only sees the ephemeral run workspace
+- The daemon never allows direct container writes to the host repository
+
+**Promotion options:**
+- Patch-based: `git diff` → `git apply` on the host repo
+- History-based: `git cherry-pick` of run commits into the host repo
+- Remote-based: `git push` from run workspace to remote; developer pulls on host
+
+**Remote management:**
+- Support named remotes (e.g. `origin`) and explicit `git remote add` for additional remotes
 
 ## Provider Configuration
 

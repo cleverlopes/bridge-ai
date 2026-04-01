@@ -422,6 +422,27 @@ Tune based on production load testing.
 
 ## Missing Critical Features
 
+### Four-Plane Foundation Gaps (Planned Milestone 2)
+
+**Issue:** The current codebase has the MVP building blocks (vault sync, Docker hardening, events, plan lifecycle) but is missing the foundation required for safe autonomous iteration on **existing repositories**.
+
+**Missing (planned):**
+- **Workspace onboarding + repo indexing:** register project from `workspace_path` or `repo_url`, detect remote + base branch, generate baseline docs
+- **Per-run ephemeral workspaces:** isolate each run in a disposable clone; container never writes to host repo directly
+- **Policy engine + execution profiles:** Read-only/Guided/Autonomous with command/path allowlists and deny-by-default posture
+- **Loop engine:** execute → validate → repair → repeat with hard iteration limits and auditable checkpoints
+- **Audit tables:** `tool_calls`, `sandbox_runs`, `artifacts`, `spec_versions`, `approvals`, and `workspace_snapshots`
+- **Vault mind:** structured operational memory under `90-AI/` (specs, decisions, runbooks, evaluations)
+
+**Impact:**
+- Without onboarding, the daemon cannot safely resolve where to act, what to document, or where to apply commits
+- Without per-run isolation, a repair loop can corrupt the host workspace or accumulate irrecoverable drift
+- Without policy + audit, expanded channels increase risk and reduce traceability
+
+**Priority:** Critical (foundation for brownfield-first product)
+
+---
+
 ### No Discord Module (Phase 9)
 
 **Issue:** Phase 9 (Discord bot) is entirely unimplemented.
@@ -512,25 +533,26 @@ Tune based on production load testing.
 ## Summary
 
 **Critical Issues (fix immediately):**
-1. Telegram throttling missing — Phase 8 blocker, security risk
+1. Workspace isolation per run missing — current WorkspaceService provisions per-project dirs but does not enforce per-run ephemeral clones; loop autonomy would be unsafe without this
 2. Health check uses private BullMQ API — fragile, may break
 3. Master key fallback to passphrase — encryption weakness
 
 **High Priority (fix before next release):**
-4. Discord module not started — Phase 9 blocker
-5. Obsidian REST client missing — Phase 10 blocker
-6. SDK not publishable — Phase 10 blocker
-7. EXECUTION-LOG.md path fallback — affects log organization
+4. Telegram channel is not deterministic yet — needs active context, layered intent parsing, and strict command protocol for risky actions
+5. Discord module not started — Phase 12 blocker (post-foundation)
+6. Obsidian REST client missing — Phase 13 blocker (post-foundation)
+7. SDK not publishable — Phase 13 blocker (post-foundation)
+8. EXECUTION-LOG.md path fallback — affects log organization
 
 **Medium Priority (address in next sprint):**
-8. CLI providers zero cost undocumented — impacts cost tracking transparency
-9. Hardcoded container image without version pinning — supply chain risk
-10. Monolithic service files — maintainability debt
+9. CLI providers zero cost undocumented — impacts cost tracking transparency
+10. Hardcoded container image without version pinning — supply chain risk
+11. Monolithic service files — maintainability debt
 
 **Low Priority (nice to have):**
-11. Non-atomic secret rotation — atomicity violation in principle
-12. Unused parameters — code smell
-13. Workflow events audit trail incomplete — observability gap
+12. Non-atomic secret rotation — atomicity violation in principle
+13. Unused parameters — code smell
+14. Workflow events audit trail incomplete — observability gap
 
 ---
 

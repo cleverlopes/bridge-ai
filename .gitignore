@@ -12,3 +12,4 @@ volumes/workspaces/
 volumes/obsidian/
 
 coverage/
+_deprecated*

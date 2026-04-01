@@ -2,13 +2,24 @@
 
 ## What This Is
 
-bridge-ai is an **intelligence factory** — a platform that transforms natural language intent into organized, structured knowledge in an Obsidian vault and PostgreSQL, while autonomously executing work through isolated Docker containers and a GSD-inspired structured lifecycle engine (discuss → plan → execute → verify).
+bridge-ai is an **AI Gateway for Controlled Engineering** — a self-hosted framework that bridges developers and AI models to accelerate maintenance and evolution of **existing repositories** without losing control.
+
+It does this by separating the system into **four planes**:
+
+- **Knowledge plane**: durable, human-editable operational memory in an Obsidian/Markdown vault (PARA + structured templates)
+- **Control plane**: a gateway/orchestrator that resolves context, applies policies, and routes work deterministically
+- **Execution plane**: isolated execution inside a Docker jail, operating only on ephemeral per-run workspaces
+- **Audit plane**: PostgreSQL as the ledger of truth for runs, iterations, events, approvals, tool calls, and artifacts
+
+The system runs a structured lifecycle (GSD) and an iterative loop (plan → execute → validate → repair → repeat) under explicit safety policies and execution profiles.
 
 Users describe what they want to build via Telegram (Discord in v2). The platform generates a roadmap, executes phases inside Docker sandboxes using a pluggable AI provider (OpenRouter, Gemini, OpenAI, Claude CLI, custom), and produces a living knowledge base in Obsidian that grows richer with every completed project.
 
 ## Core Value
 
 The Obsidian vault is the product — every execution produces organized, navigable, human-editable intelligence that compounds across projects.
+
+The core principle is rigid separation between **memory**, **decision**, and **execution**. Without this separation the system becomes noisy automation; with it, it becomes a controlled engineering gateway.
 
 ## Requirements
 
@@ -29,13 +40,16 @@ The Obsidian vault is the product — every execution produces organized, naviga
 
 ### Active
 
+- [ ] **ONBOARD-01**: Mandatory workspace onboarding for existing repos (workspace path or repo URL), remote/base-branch detection, initial indexing and docs baseline
+- [ ] **CHAN-07**: Deterministic Telegram protocol (active context per chat, small command set, NL only inside resolved contexts)
+- [ ] **POLICY-01**: Execution profiles + policy engine (Read-only / Guided / Autonomous), command/path allowlists, deny-by-default posture
+- [ ] **LOOP-01**: Iterative loop engine inside the jail (execute → validate → repair), hard iteration limits, auditable outputs
+- [ ] **VAULT-01**: Vault mind (`90-AI/`) as proactive operational memory (specs, decisions, runbooks, evaluations)
+- [ ] **AUDIT-01**: Audit-plane expansions (`tool_calls`, `sandbox_runs`, `artifacts`, `spec_versions`, `approvals`)
 - [ ] **CI-01**: CI pipeline enforces ≥80% coverage threshold as a failing gate (currently reports coverage but doesn't fail)
-- [ ] **DISC-01**: Discord bot adapter accepts `/new`, `/done`, `/approve`, `/stop`, `/retry` — produces canonical events identical to Telegram; no changes to pipeline/plan modules
-- [ ] **DISC-02**: Discord bot token stored in KSM (`discord-bot-token`); never from env directly
-- [ ] **OBS-01**: Obsidian REST API client reads back `CONTEXT.md` / `ROADMAP.md` edits before next lifecycle step (bidirectional sync)
-- [ ] **OBS-02**: Graceful fallback to file-based sync when Obsidian Local REST plugin is unreachable
-- [ ] **SDK-01**: `@bridge-ai/bridge-sdk` publishable to npm — build workflow, `npm publish` script, SDK README quick-start
 - [ ] **SEC-01**: `docs/SECURITY.md` — deployment checklist, master key rotation runbook, KSM architecture guide
+- [ ] **DISC-01**: Discord adapter (post-foundation): second channel producing canonical payloads; no changes to pipeline/plan modules
+- [ ] **OBS-01**: Obsidian REST bidirectional sync + SDK publish workflow (post-foundation)
 
 ### Out of Scope
 
@@ -48,7 +62,7 @@ The Obsidian vault is the product — every execution produces organized, naviga
 
 ## Context
 
-**Current state (2026-04-01):** Milestone 1 (MVP, Phases 1–6) is complete. Phases 7–8 of Milestone 2 are substantially done. The active work is Phases 9–10 (Discord + Obsidian REST/SDK) plus two minor gaps (CI enforcement, SECURITY.md docs).
+**Current state (2026-04-01):** Milestone 1 (MVP, Phases 1–6) is complete. Phases 7–8 are substantially done with two gaps (CI coverage gate; `docs/SECURITY.md`). The next priority is Milestone 2 foundation: **workspace onboarding + repo indexing**, deterministic Telegram protocol, policy engine, loop engine, and vault mind.
 
 **Codebase:** NestJS 10 + TypeScript 5 monorepo (Nx). Bun for package management. PostgreSQL 18 + TypeORM for persistence. Redis 7 + BullMQ for queuing. Dockerode for container management. Three internal packages: `@bridge-ai/nest-core` (NestJS modules), `@bridge-ai/gsd-sdk` (pipeline engine), `@bridge-ai/bridge-sdk` (providers + Obsidian client).
 
@@ -61,6 +75,9 @@ The Obsidian vault is the product — every execution produces organized, naviga
 - **Secrets**: No credentials in `.env` or git; all secrets via KSM; only `BRIDGE_MASTER_KEY` may be in env
 - **SDK boundary**: `packages/gsd-sdk` and `packages/bridge-sdk` must have zero NestJS imports (ADR-08)
 - **Container security**: No `allow: ["*"]` in Docker containers; read-only rootfs; uid 1000 (ADR per NFR-07)
+- **Workspace isolation**: The execution environment never writes directly to the host repo; each run uses an ephemeral workspace clone and promotion is explicit (patch/cherry-pick/push)
+- **Determinism**: Telegram/CLI carry intent; the daemon resolves target context (workspace/project/run) before any action
+- **CLI channel limitation**: CLI-based providers cannot report cost/tokens; cost tracking is \(0\) by design for CLI providers and must be treated as a known limitation
 
 ## Key Decisions
 
@@ -74,6 +91,9 @@ The Obsidian vault is the product — every execution produces organized, naviga
 | Obsidian vault as first-class product output | Users want navigable, human-editable intelligence | ✓ Good |
 | Telegram ThrottlerGuard via middleware (not per-handler @Throttle) | All commands protected at bot.use() level without per-handler decoration | — Pending eval |
 | File-based Obsidian sync (v1) vs REST API (v2) | Phase 10 upgrades to bidirectional REST sync; Phase 6 delivers file-write | — Phase 10 pending |
+| Four-plane architecture (Knowledge/Control/Execution/Audit) | Separate memory, decision, execution, and audit for controllability | — Milestone 2 foundation |
+| Workspace onboarding + per-run ephemeral clones | Prevent the agent from touching the host repo; enable rollback and safe promotion | — Milestone 2 foundation |
+| Deterministic Telegram protocol (commands + context-bound NL) | Prevent target guessing; ensure operational safety over VPS/mobile workflows | — Milestone 2 foundation |
 
 ## Evolution
 

@@ -16,12 +16,16 @@
 │   │   │   │   ├── plan/                  # Plan state management
 │   │   │   │   ├── project/               # Project CRUD
 │   │   │   │   ├── events/                # Event bus & queue management
-│   │   │   │   ├── telegram/              # Telegram bot integration
+│   │   │   │   ├── telegram/              # Telegram bot integration (planned refactor: router/context/intent/dispatcher/notifier)
 │   │   │   │   ├── docker/                # Container sandbox management
 │   │   │   │   ├── obsidian/              # Obsidian vault sync
 │   │   │   │   ├── metrics/               # Execution metrics tracking
 │   │   │   │   ├── ksm/                   # Key/secret management (encryption)
-│   │   │   │   └── health/                # Liveness/readiness checks
+│   │   │   │   ├── health/                # Liveness/readiness checks
+│   │   │   │   ├── workspace/             # Workspace onboarding + repo indexing (planned)
+│   │   │   │   ├── policy/                # Policy engine + execution profiles (planned)
+│   │   │   │   ├── loop-engine/           # Iterative loop engine (planned)
+│   │   │   │   └── vault-mind/            # 90-AI/ operational memory writer (planned)
 │   │   │   └── persistence/               # Data access layer
 │   │   │       ├── entity/                # TypeORM entities
 │   │   │       └── migrations/            # Database migrations
@@ -37,8 +41,10 @@
 │           ├── providers/                 # AI provider implementations
 │           └── ...                        # Obsidian client, utilities
 ├── volumes/                               # Runtime data (git-ignored)
-│   ├── workspaces/                        # Project execution workspaces
-│   └── obsidian/                          # Obsidian vault directory
+│   ├── workspaces/                        # Runtime workspaces
+│   │   ├── projects/                      # Stable per-project workspaces (current model)
+│   │   └── runs/                          # Ephemeral per-run clones (planned model)
+│   └── obsidian/                          # Obsidian vault directory (planned: includes 90-AI/)
 ├── .planning/                             # GSD planning artifacts
 │   └── codebase/                          # Codebase documentation (this file)
 ├── docker-compose.yml                     # PostgreSQL, Redis, app services
@@ -100,6 +106,7 @@
   - `telegram-notifier.service.ts`: Outbound message delivery
   - `conversation-state.service.ts`: Multi-turn state tracking
   - `telegram.module.ts`: Imports Project, Plan, Brain, Events, Docker, KSM
+ - Planned refactor (Phase 8.6): `router/`, `context/`, `intent/`, `dispatcher/`, `notifier/`
 
 **packages/nest-core/src/module/docker/:**
 - Purpose: Docker container lifecycle management
@@ -126,6 +133,31 @@
 - Purpose: Health check endpoints
 - Key files:
   - `health.controller.ts`: GET /health with db/redis status
+
+**packages/nest-core/src/module/workspace/:** (planned)
+- Purpose: Workspace onboarding + repository indexing + per-run ephemeral workspace clones
+- Key files (planned):
+  - `workspace-onboarding.service.ts`: `gateway init` flow (workspace path or repo URL)
+  - `repo-indexer.service.ts`: full bootstrap + incremental indexing
+  - `workspace-clone.service.ts`: per-run clone/copy isolation model
+
+**packages/nest-core/src/module/policy/:** (planned)
+- Purpose: Control plane policy engine and execution profiles
+- Key files (planned):
+  - `policy.service.ts`: allowlists + deny-by-default enforcement
+  - `execution-profile.ts`: READ_ONLY / GUIDED / AUTONOMOUS
+
+**packages/nest-core/src/module/loop-engine/:** (planned)
+- Purpose: Execution loop (execute → validate → repair) with hard limits and checkpoint commits
+- Key files (planned):
+  - `loop.service.ts`: orchestration of iterations
+  - `loop.worker.ts`: BullMQ worker for loop jobs (if separated)
+
+**packages/nest-core/src/module/vault-mind/:** (planned)
+- Purpose: Proactive knowledge writing to `90-AI/` and knowledge node indexing
+- Key files (planned):
+  - `vault-mind.service.ts`: write specs/decisions/runbooks/evaluations
+  - `knowledge-index.service.ts`: maintain `knowledge_nodes` table (planned)
 
 **packages/nest-core/src/persistence/entity/:**
 - Purpose: Database schema definitions
@@ -250,16 +282,19 @@
 ## Special Directories
 
 **volumes/workspaces/:**
-- Purpose: Project execution workspace directories
-- Generated: Yes (created by WorkspaceService.provisionWorkspace)
+- Purpose: Runtime workspace directories
+- Generated: Yes (created by workspace services)
 - Committed: No (git-ignored, contains runtime state)
-- Content: Project code, .planning dir, workspace metadata
+- Content:
+  - `projects/<projectId>/`: stable per-project workspace (current)
+  - `runs/<runId>/`: ephemeral per-run workspace clones (planned; safe execution model)
 
 **volumes/obsidian/:**
 - Purpose: Obsidian vault for project dashboards
 - Generated: Yes (created by ObsidianSyncService.ensureVaultStructure)
 - Committed: No (git-ignored)
 - Content: Markdown files for projects and phases
+ - Planned: `90-AI/` operational memory (specs/plans/decisions/prompts/evaluations/runbooks)
 
 **packages/nest-core/src/__mocks__/:**
 - Purpose: Mock implementations for testing

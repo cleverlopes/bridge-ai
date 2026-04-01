@@ -105,18 +105,32 @@
 - Docker (for sandbox execution via Dockerode)
 - PostgreSQL 18+ (local development: `postgres:18-alpine`)
 - Redis 7+ (local development: `redis:7-alpine`)
+- PM2 (process manager) for local daemon lifecycle (recommended)
 
 **Production:**
 - Node.js (via Bun) 1.x+
-- Docker daemon (for container management)
+- systemd (Linux) managing the main Node.js daemon process
+- Docker daemon (for sandbox container management)
 - PostgreSQL 18+ (external service)
 - Redis 7+ (external service)
 - Docker image for runner: `bridge-ai-runner:latest` (custom, requires Dockerfile)
 
 **Deployment Target:**
-- Docker containers (primary)
-- Environment: Docker Compose for local dev, Kubernetes or Docker host for production
+- Primary target: **self-hosted Linux host / VPS** under operator control (on-premise / self-hosted)
+- Main process is a **Node.js daemon** managed by **systemd**
+- Docker is used for the execution jail only (runner containers), not for managing the API daemon
 - Entry point: `apps/api/main.ts` → NestFactory bootstrap → port 3000 (default)
+
+## Process Management
+
+**Production (systemd):**
+- The API runs as a systemd service (e.g. `bridge-ai.service`)
+- Restart policy via `Restart=always` and log collection via journald
+- Operational model: daemon lifecycle is owned by systemd, not by Docker
+
+**Development (PM2):**
+- Run the API daemon with PM2 for restarts/watch/log management
+- Typical workflow: `pm2 start ecosystem.config.js`, `pm2 logs`, `pm2 restart`, `pm2 stop`
 
 ---
 

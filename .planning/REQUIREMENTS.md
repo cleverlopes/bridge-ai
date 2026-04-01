@@ -60,7 +60,15 @@ All MVP requirements are complete.
 
 ---
 
-## Milestone 2 — Production Hardening Requirements (Phases 7–10)
+## Milestone 2 — Four-Plane Foundation Requirements (Phases 7–11)
+
+This milestone establishes the foundation for controlled, brownfield-first engineering:
+- Mandatory workspace onboarding + repository indexing
+- Deterministic Telegram protocol (commands + context-bound natural language)
+- Control plane policy engine with execution profiles
+- Execution plane loop engine (iterate → validate → repair) inside the jail
+- Knowledge plane vault mind (`90-AI/`) as operational memory
+- Audit plane expansions for traceability (tool calls, sandbox runs, artifacts, approvals)
 
 ### Test Coverage + CI
 
@@ -77,20 +85,79 @@ All MVP requirements are complete.
 - [x] **SEC-04**: Docker hardening: `ReadonlyRootfs`, `CapDrop=ALL`, `no-new-privileges`, uid 1000 ✓ Phase 5/8
 - [ ] **SEC-05**: `docs/SECURITY.md` — deployment checklist, master key rotation runbook, KSM architecture
 
+### Workspace Onboarding + Repo Indexing
+
+- [ ] **ONBOARD-01**: `gateway init` accepts `--workspace <path>` or `--repo <url>` + `--workspace <path>` ✓ Phase 8.5
+- [ ] **ONBOARD-02**: Validate Git repo; detect main remote, base branch, current branch, dirty state ✓ Phase 8.5
+- [ ] **ONBOARD-03**: Auth contract: SSH or HTTPS; validate read/write before registering the project ✓ Phase 8.5
+- [ ] **ONBOARD-04**: Generate initial vault docs for an onboarded repo: `project.md`, `architecture.md`, `stack.md`, `decisions.md`, `runbook.md` ✓ Phase 8.5
+- [ ] **ONBOARD-05**: Persist onboarding/index snapshot in PostgreSQL (`workspace_snapshots`) ✓ Phase 8.5
+- [ ] **ONBOARD-06**: Full bootstrap indexing on first onboarding ✓ Phase 8.5
+- [ ] **ONBOARD-07**: Incremental indexing/sync on branch/commit/structure changes ✓ Phase 8.5
+- [ ] **ONBOARD-08**: Safe workspace model: each run uses an isolated ephemeral workspace clone ✓ Phase 8.5
+- [ ] **ONBOARD-09**: Container never mounts host repo with write permissions; container only sees the ephemeral workspace ✓ Phase 8.5
+- [ ] **ONBOARD-10**: Promotion is explicit (patch/cherry-pick/push); daemon never writes directly to host repo ✓ Phase 8.5
+
+### Telegram Refactor (Deterministic Protocol)
+
+- [ ] **CHAN-07**: Active context per chat: `chat_id → active_workspace → active_project → active_run` persisted ✓ Phase 8.6
+- [ ] **CHAN-08**: 3-layer intent pipeline: intent classification → context resolution → normalization to canonical payload ✓ Phase 8.6
+- [ ] **CHAN-09**: Natural language accepted only inside resolved safe contexts and allowed execution profile ✓ Phase 8.6
+- [ ] **CHAN-10**: Minimal command protocol replaces free-form command surface (context/workflow/run-control/security/ops) ✓ Phase 8.6
+- [ ] **CHAN-11**: Risk actions require explicit `/confirm <token>` ✓ Phase 8.6
+- [ ] **CHAN-12**: Branch-per-run policy for execution (`run/<project_id>/<N>`) ✓ Phase 8.6
+- [ ] **CHAN-13**: Fixed-format telemetry messages for critical events (run/iteration/validation/approval) ✓ Phase 8.6
+- [ ] **CHAN-14**: Without active project, intent is recognized but no execution occurs; selection/create is requested ✓ Phase 8.6
+- [ ] **CHAN-15**: All Telegram inputs normalize into a single canonical payload object before dispatch ✓ Phase 8.6
+
+### Policy Engine + Execution Profiles
+
+- [ ] **POLICY-01**: Execution profiles: READ_ONLY, GUIDED, AUTONOMOUS ✓ Phase 9
+- [ ] **POLICY-02**: Command allowlist by profile; deny-by-default for unsafe commands ✓ Phase 9
+- [ ] **POLICY-03**: Path allowlist by profile; enforce workspace boundaries ✓ Phase 9
+- [ ] **POLICY-04**: Policy denials are recorded as auditable events (`policy.denied`) ✓ Phase 9
+
+### Loop Engine / Ralph
+
+- [ ] **LOOP-01**: Iterative loop: plan → execute → validate → repair → repeat ✓ Phase 10
+- [ ] **LOOP-02**: Hard iteration limit per run, configurable; deterministic stop conditions ✓ Phase 10
+- [ ] **LOOP-03**: Validators: tests/lint/build/security checks gate checkpoints ✓ Phase 10
+- [ ] **LOOP-04**: Checkpoint commits only when validator passes and policy allows ✓ Phase 10
+- [ ] **LOOP-05**: Rollback strategy after repeated failures; escalate to human gate ✓ Phase 10
+
+### Vault Mind (90-AI/ operational memory)
+
+- [ ] **VAULT-01**: Create `90-AI/` structure: specs/plans/decisions/prompts/evaluations/runbooks ✓ Phase 11
+- [ ] **VAULT-02**: Onboarding writes baseline spec + architecture into `90-AI/` ✓ Phase 11
+- [ ] **VAULT-03**: Decisions recorded as structured ADR-like entries under `90-AI/decisions/` ✓ Phase 11
+- [ ] **VAULT-04**: Runbooks updated from execution failures and resolutions ✓ Phase 11
+
+### Audit Plane Gaps
+
+- [ ] **AUDIT-01**: `tool_calls` table: one row per tool invocation (args, result metadata, timing) ✓ Phase 10
+- [ ] **AUDIT-02**: `sandbox_runs` table: one row per container/workspace execution ✓ Phase 10
+- [ ] **AUDIT-03**: `artifacts` table: structured outputs (diffs, logs, reports) with provenance ✓ Phase 10/11
+- [ ] **AUDIT-04**: `spec_versions` table: versioned specs linked to runs/iterations ✓ Phase 11
+- [ ] **AUDIT-05**: `approvals` table: explicit approvals/denials (policy, human gate, commit/merge) ✓ Phase 9/10
+
+---
+
+## Milestone 3 — Channel Expansion + Obsidian REST + SDK Release (Phases 12–13)
+
 ### Discord Channel
 
-- [ ] **DISC-01**: `DiscordModule` with bot, slash commands (/new, /done, /approve, /stop, /retry), `CanonicalPayloadBuilder`
-- [ ] **DISC-02**: Discord bot token stored in KSM (`discord-bot-token`); never from env directly
-- [ ] **DISC-03**: Zero changes to PipelineModule, PlanModule, DockerModule, ObsidianModule
+- [ ] **DISC-01**: `DiscordModule` with bot, slash commands (/new, /done, /approve, /stop, /retry), `CanonicalPayloadBuilder` ✓ Phase 12
+- [ ] **DISC-02**: Discord bot token stored in KSM (`discord-bot-token`); never from env directly ✓ Phase 12
+- [ ] **DISC-03**: Zero changes to PipelineModule, PlanModule, DockerModule, ObsidianModule ✓ Phase 12
 
 ### Obsidian REST + SDK Release
 
-- [ ] **OAPI-01**: `ObsidianApiService` — client for Obsidian Local REST API plugin: read, write, search, list
-- [ ] **OAPI-02**: Bidirectional sync: read back `CONTEXT.md` / `ROADMAP.md` vault edits before next lifecycle step
-- [ ] **OAPI-03**: Graceful fallback to file-based sync when plugin unreachable; `GET /health` reports `obsidian: connected` or `obsidian: file-fallback`
-- [ ] **SDK-01**: `@bridge-ai/bridge-sdk` publishable to npm with `npm publish` workflow
-- [ ] **SDK-02**: SDK README with quick-start: `npm install @bridge-ai/bridge-sdk`
-- [ ] **DOCS-01**: `docs/OBSIDIAN_SETUP.md` — plugin installation + API token setup
+- [ ] **OAPI-01**: `ObsidianApiService` — client for Obsidian Local REST API plugin: read, write, search, list ✓ Phase 13
+- [ ] **OAPI-02**: Bidirectional sync: read back `CONTEXT.md` / `ROADMAP.md` vault edits before next lifecycle step ✓ Phase 13
+- [ ] **OAPI-03**: Graceful fallback to file-based sync when plugin unreachable; `GET /health` reports `obsidian: connected` or `obsidian: file-fallback` ✓ Phase 13
+- [ ] **SDK-01**: `@bridge-ai/bridge-sdk` publishable to npm with `npm publish` workflow ✓ Phase 13
+- [ ] **SDK-02**: SDK README with quick-start: `npm install @bridge-ai/bridge-sdk` ✓ Phase 13
+- [ ] **DOCS-01**: `docs/OBSIDIAN_SETUP.md` — plugin installation + API token setup ✓ Phase 13
 
 ---
 
@@ -121,12 +188,19 @@ All MVP requirements are complete.
 | TEST-04 | Phase 7 (gap) | 🔲 Pending |
 | SEC-01 through SEC-04 | Phase 1/8 | ✅ Complete |
 | SEC-05 | Phase 8 (gap) | 🔲 Pending |
-| DISC-01 through DISC-03 | Phase 9 | 🔲 Pending |
-| OAPI-01 through OAPI-03, SDK-01, SDK-02, DOCS-01 | Phase 10 | 🔲 Pending |
+| ONBOARD-01 through ONBOARD-10 | Phase 8.5 | 🔲 Pending |
+| CHAN-07 through CHAN-15 | Phase 8.6 | 🔲 Pending |
+| POLICY-01 through POLICY-04 | Phase 9 | 🔲 Pending |
+| LOOP-01 through LOOP-05 | Phase 10 | 🔲 Pending |
+| VAULT-01 through VAULT-04 | Phase 11 | 🔲 Pending |
+| AUDIT-01 through AUDIT-05 | Phase 9–11 | 🔲 Pending |
+| DISC-01 through DISC-03 | Phase 12 | 🔲 Pending |
+| OAPI-01 through OAPI-03, SDK-01, SDK-02, DOCS-01 | Phase 13 | 🔲 Pending |
 
 **Coverage:**
 - Milestone 1 requirements: 25 total — 25 complete ✅
-- Milestone 2 requirements: 16 total — 10 complete, 6 pending
+- Milestone 2 requirements: 46 total — 7 complete, 39 pending
+- Milestone 3 requirements: 12 total — 0 complete, 12 pending
 - Unmapped: 0 ✓
 
 ---

@@ -2,6 +2,17 @@
 
 **Analysis Date:** 2026-04-01
 
+## Four-Plane Model
+
+The architecture is intentionally separated into **four planes** to enforce safety, determinism, and traceability:
+
+- **Knowledge plane (Vault):** durable, human-editable operational memory (PARA + templates + `90-AI/`)
+- **Control plane (Gateway):** resolves context (workspace/project/run), enforces policy, routes actions, emits telemetry
+- **Execution plane (Jail):** runs changes inside an isolated container over an **ephemeral per-run workspace**
+- **Audit plane (PostgreSQL):** ledger of projects, runs, iterations, events, approvals, tool calls, sandbox runs, artifacts
+
+The core invariant is: **the agent never writes directly to the host repository**. All writes happen inside an ephemeral run workspace and are promoted explicitly (patch/cherry-pick/push) after validation.
+
 ## Pattern Overview
 
 **Overall:** NestJS-based modular microservice with event-driven async processing, using a distributed multi-module architecture with service composition and adapter pattern for AI provider integration.
@@ -13,7 +24,7 @@
 - TypeORM entities with PostgreSQL persistence
 - Layered architecture: HTTP controllers → services → persistence
 - Async job workers for long-running operations
-- Optional Docker sandboxing for plan execution
+- Docker sandboxing for execution (execution plane jail)
 
 ## Layers
 
@@ -68,24 +79,34 @@
 
 ## Data Flow
 
+**Workspace Onboarding Flow (Phase 8.5 planned):**
+
+1. Operator provides `workspace_path` (existing clone) or `repo_url` + desired `workspace_path`
+2. **WorkspaceOnboardingService** validates Git, detects remote(s), base branch, and local state
+3. **RepoIndexerService** performs full bootstrap indexing and generates initial knowledge artifacts
+4. Baseline docs are written to the vault (knowledge plane) and snapshots stored in PostgreSQL (audit plane)
+5. Future changes trigger incremental indexing based on branch/commit/structure changes
+
 **Plan Execution Flow:**
 
-1. User submits prompt via Telegram → **TelegramBotService** → creates Plan with status 'draft'
-2. User approves plan → **PlanService.approvePlan()** transitions to 'approved_queued', publishes `plan.execution_queued` event
-3. Event published to **QUEUE_EXECUTION_JOBS** (BullMQ)
-4. **ExecutionWorker** claims job, calls **PipelineService.executeProject(planId)**
-5. **PipelineService**:
-   - Provisions workspace via **WorkspaceService**
-   - Optionally creates Docker container via **DockerService**
+1. User sends command or context-bound natural language via Telegram → **Telegram Router** classifies intent
+2. **ContextResolver** resolves `chat_id → active workspace/project/run`; if unresolved, returns selection request (no execution)
+3. **PolicyEngine** validates execution profile and allowlists (command/path/network); denied actions are recorded
+4. **ActionDispatcher** normalizes to a canonical payload and creates a Plan with status 'draft'
+5. User approves → **PlanService.approvePlan()** transitions to 'approved_queued', publishes `plan.execution_queued`
+6. Event published to **QUEUE_EXECUTION_JOBS** (BullMQ)
+7. **ExecutionWorker** claims job, calls **PipelineService.executeProject(planId)**
+8. **PipelineService**:
+   - Provisions an **ephemeral run workspace** via workspace services (clone/copy model)
+   - Creates Docker container via **DockerService** and mounts only the run workspace
    - Creates GSD instance with **BrainService** as provider adapter
    - Registers transports: **ObsidianTransport**, **PostgresTransport**
-   - Runs GSD.run(prompt) which iteratively calls **BrainService.generate()**
+   - Runs execution via GSD + LoopEngine (planned): execute → validate → repair → repeat
    - **BrainService** resolves configured provider and routes to **BridgeSDK** providers
-   - Emits GSD events to **ObsidianSyncService**, **TelegramNotifierService**
+   - Emits events to **ObsidianSyncService/VaultMind** and channel notifiers (telemetry)
    - Marks plan completed/failed based on result
-6. **ObsidianSyncService** syncs phase data to Obsidian vault
-7. **MetricsService** records execution metrics
-8. **PostgresTransport** persists GSD events to **AppEvent** table
+9. **MetricsService** records execution metrics
+10. **PostgresTransport** persists events to the audit tables
 
 **Event Publishing Flow:**
 
@@ -129,6 +150,22 @@
 - Examples: `PipelineService`, `PlanService`, `BrainService`, `KsmService`
 - Pattern: `@Injectable()` class with dependencies injected via constructor
 
+**PolicyEngine (Control Plane):**
+- Purpose: Enforce execution profile and allowlists; deny-by-default posture for risky actions
+- Planned location: `packages/nest-core/src/module/policy/`
+
+**LoopEngine (Execution Plane):**
+- Purpose: Iterative execution loop (execute → validate → repair) with hard limits and auditable checkpoints
+- Planned location: `packages/nest-core/src/module/loop-engine/`
+
+**WorkspaceOnboardingService / RepoIndexerService:**
+- Purpose: Register existing repos, generate baseline docs, and maintain incremental indexing
+- Planned location: `packages/nest-core/src/module/workspace/`
+
+**VaultMindService (Knowledge Plane):**
+- Purpose: Proactively write structured specs/decisions/runbooks into `90-AI/` and index knowledge nodes
+- Planned location: `packages/nest-core/src/module/vault-mind/`
+
 ## Entry Points
 
 **HTTP/REST:**
@@ -140,6 +177,10 @@
 - Location: `packages/nest-core/src/module/telegram/telegram-bot.service.ts`
 - Triggers: Telegram messages to bot
 - Responsibilities: Parse intent, manage conversation state, trigger plan workflows
+
+**CLI (planned first-class channel):**
+- Triggers: `gateway init`, run control commands
+- Responsibilities: Onboarding, project selection, operational control without Telegram
 
 **BullMQ Workers:**
 - Location: `packages/nest-core/src/module/*/[name].worker.ts`
