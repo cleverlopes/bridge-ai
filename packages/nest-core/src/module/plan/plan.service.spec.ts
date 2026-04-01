@@ -136,7 +136,6 @@ describe('PlanService', () => {
   describe('startExecution()', () => {
     it('transitions approved_queued → executing via FOR UPDATE SKIP LOCKED', async () => {
       const plan = makePlan({ status: 'approved_queued' });
-      const executingPlan = { ...plan, status: 'executing' as const };
 
       const mockManager = {
         query: jest.fn().mockResolvedValue([plan]),

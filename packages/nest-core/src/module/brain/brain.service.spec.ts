@@ -1,24 +1,6 @@
 import { KsmService } from '../ksm/ksm.service';
 import { EventsService } from '../events/events.service';
 import { BrainService } from './brain.service';
-import type { GenerationResult } from '@bridge-ai/gsd-sdk';
-import { OpenRouterProvider, GeminiProvider, ClaudeCliProvider } from '@bridge-ai/bridge-sdk';
-
-const makeGenerationResult = (overrides: Partial<GenerationResult> = {}): GenerationResult => ({
-  success: true,
-  sessionId: 'session-test',
-  totalCostUsd: 0.002,
-  durationMs: 300,
-  usage: {
-    inputTokens: 50,
-    outputTokens: 25,
-    cacheReadInputTokens: 0,
-    cacheCreationInputTokens: 0,
-  },
-  numTurns: 1,
-  ...overrides,
-});
-
 const makeKsmService = (): jest.Mocked<KsmService> =>
   ({
     getSecret: jest.fn(),
