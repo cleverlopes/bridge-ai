@@ -9,8 +9,8 @@ export interface RepoInfo {
 
 export interface ManifestEntry {
   path: string;
-  type: string;
-  content: Record<string, unknown>;
+  type: 'package.json' | 'pyproject.toml' | 'Cargo.toml' | 'go.mod' | 'pom.xml' | 'build.gradle' | 'other';
+  content: string;
 }
 
 export interface IndexPayload {
@@ -24,8 +24,8 @@ export interface IndexPayload {
   baseBranch: string;
   currentBranch: string;
   headSha: string;
+  truncated: boolean;
   indexedAt: string;
-  truncated?: boolean;
 }
 
 export interface InitWorkspaceDto {
@@ -33,4 +33,13 @@ export interface InitWorkspaceDto {
   repoUrl?: string;
   projectName: string;
   slug: string;
+  credentialType?: 'ssh' | 'https';
+  credentialValue?: string;
+}
+
+export interface InitWorkspaceResult {
+  projectId: string;
+  workspacePath: string;
+  repoInfo: RepoInfo;
+  indexedAt: string;
 }
