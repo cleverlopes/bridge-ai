@@ -20,7 +20,7 @@ import(distPath).then(m => {
   try {
     execFileSync('tsx', [srcPath, ...process.argv.slice(2)], { stdio: 'inherit' });
   } catch {
-    console.error('bridge: dist/index.js not found. Run `bun run build` in packages/cli/ first.');
+    console.error('bridgeai: dist/index.js not found. Run `bun run build` in packages/cli/ first.');
     process.exit(1);
   }
 });

@@ -31,7 +31,7 @@ export class DaemonClient {
   async isHealthy(): Promise<boolean> {
     try {
       const res = await fetch(`${this.baseUrl}/health`, {
-        signal: AbortSignal.timeout(2000),
+        signal: AbortSignal.timeout(5000),
       });
       return res.ok;
     } catch {

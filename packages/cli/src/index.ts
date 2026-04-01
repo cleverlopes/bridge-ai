@@ -14,12 +14,12 @@ const VERSION = '0.1.0';
 function printHelp(): void {
   console.log(
     `
-bridge — Bridge AI CLI
+bridgeai — Bridge AI CLI
 
 Usage:
-  bridge init --workspace <path> [options]
-  bridge --help
-  bridge --version
+  bridgeai init --workspace <path> [options]
+  bridgeai --help
+  bridgeai --version
 
 Commands:
   init        Initialize and onboard a workspace
@@ -66,7 +66,7 @@ export async function main(argv: string[]): Promise<void> {
   }
 
   if (flags['version'] || flags['v']) {
-    console.log(`bridge v${VERSION}`);
+    console.log(`bridgeai v${VERSION}`);
     return;
   }
 
@@ -93,12 +93,12 @@ export async function main(argv: string[]): Promise<void> {
     return;
   }
 
-  console.error(`bridge: unknown command '${command}'. Run 'bridge --help'.`);
+  console.error(`bridgeai: unknown command '${command}'. Run 'bridgeai --help'.`);
   process.exit(1);
 }
 
 // Allow running directly via tsx or after build
 main(process.argv.slice(2)).catch(err => {
-  console.error(`bridge: ${err instanceof Error ? err.message : String(err)}`);
+  console.error(`bridgeai: ${err instanceof Error ? err.message : String(err)}`);
   process.exit(1);
 });

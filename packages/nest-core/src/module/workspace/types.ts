@@ -37,6 +37,13 @@ export interface InitWorkspaceDto {
   credentialValue?: string;
 }
 
+export interface BrownfieldContext {
+  repoInfo: RepoInfo;
+  indexPayload: IndexPayload;
+  workspacePath: string;
+  projectSlug: string;
+}
+
 export interface InitWorkspaceResult {
   projectId: string;
   workspacePath: string;

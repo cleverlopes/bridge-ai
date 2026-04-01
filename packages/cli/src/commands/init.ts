@@ -29,12 +29,23 @@ const HEALTH_POLL_INTERVAL_MS = 500;
 /**
  * Spawn the bridge daemon process in the background.
  * Returns the child process (detached, stdio ignored for true background).
+ * Throws a descriptive Error (instead of crashing with ENOENT) when the binary is not found.
  */
 export function spawnDaemon(daemonBin: string, port: number): ChildProcess {
   const child = spawn(daemonBin, [], {
     env: { ...process.env, PORT: String(port) },
     stdio: 'ignore',
     detached: true,
+  });
+  child.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'ENOENT') {
+      throw new Error(
+        `bridgeai: cannot find daemon binary "${daemonBin}".\n` +
+        `  Make sure the daemon is running, or pass --daemon-bin <path> to specify its location.\n` +
+        `  To start the daemon manually: cd apps/api && bun run start:dev`,
+      );
+    }
+    throw err;
   });
   child.unref();
   return child;
@@ -68,11 +79,11 @@ export async function runInit(options: InitOptions): Promise<void> {
   if (!isRunning) {
     // Step 2: Spawn daemon
     const daemonBin = options.daemonBin ?? 'bridge-daemon';
-    console.log(`bridge: daemon not running on port ${port}, spawning ${daemonBin}...`);
+    console.log(`bridgeai: daemon not running on port ${port}, spawning ${daemonBin}...`);
     spawnDaemon(daemonBin, port);
 
     // Step 3: Wait for daemon to be healthy
-    console.log(`bridge: waiting for daemon to start (up to ${DAEMON_STARTUP_TIMEOUT_MS / 1000}s)...`);
+    console.log(`bridgeai: waiting for daemon to start (up to ${DAEMON_STARTUP_TIMEOUT_MS / 1000}s)...`);
     const ready = await waitForDaemon(client, DAEMON_STARTUP_TIMEOUT_MS);
     if (!ready) {
       throw new Error(
@@ -80,11 +91,11 @@ export async function runInit(options: InitOptions): Promise<void> {
           `Check that ${daemonBin} is in PATH and the port ${port} is available.`,
       );
     }
-    console.log('bridge: daemon is ready.');
+    console.log('bridgeai: daemon is ready.');
   }
 
   // Step 4: Call init endpoint
-  console.log(`bridge: initializing workspace at ${workspacePath}...`);
+  console.log(`bridgeai: initializing workspace at ${workspacePath}...`);
   const result = await client.initWorkspace({
     workspacePath,
     repoUrl: options.repo,
@@ -93,7 +104,7 @@ export async function runInit(options: InitOptions): Promise<void> {
     slug: projectSlug,
   });
 
-  console.log('bridge: workspace initialized.');
+  console.log('bridgeai: workspace initialized.');
   if (result.success) {
     console.log(`  projectId: ${result.projectId ?? '(pending)'}`);
     console.log(`  slug:      ${result.slug}`);
@@ -101,7 +112,7 @@ export async function runInit(options: InitOptions): Promise<void> {
       console.log(`  vaultDocs: ${result.vaultDocs.join(', ')}`);
     }
   } else {
-    console.error(`bridge: onboarding failed: ${result.error ?? 'unknown error'}`);
+    console.error(`bridgeai: onboarding failed: ${result.error ?? 'unknown error'}`);
     process.exit(1);
   }
 }
