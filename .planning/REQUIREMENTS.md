@@ -93,10 +93,10 @@ This milestone establishes the foundation for controlled, brownfield-first engin
 - [x] **ONBOARD-04**: Generate initial vault docs for an onboarded repo: `project.md`, `architecture.md`, `stack.md`, `decisions.md`, `runbook.md` ✓ Phase 8.5
 - [ ] **ONBOARD-05**: Persist onboarding/index snapshot in PostgreSQL (`workspace_snapshots`) ✓ Phase 8.5
 - [x] **ONBOARD-06**: Full bootstrap indexing on first onboarding ✓ Phase 8.5
-- [ ] **ONBOARD-07**: Incremental indexing/sync on branch/commit/structure changes ✓ Phase 8.5
+- [x] **ONBOARD-07**: Incremental indexing/sync on branch/commit/structure changes ✓ Phase 8.5
 - [x] **ONBOARD-08**: Safe workspace model: each run uses an isolated ephemeral workspace clone ✓ Phase 8.5
 - [x] **ONBOARD-09**: Container never mounts host repo with write permissions; container only sees the ephemeral workspace ✓ Phase 8.5
-- [ ] **ONBOARD-10**: Promotion is explicit (patch/cherry-pick/push); daemon never writes directly to host repo ✓ Phase 8.5
+- [x] **ONBOARD-10**: Promotion is explicit (patch/cherry-pick/push); daemon never writes directly to host repo ✓ Phase 8.5
 
 ### Telegram Refactor (Deterministic Protocol)
 
