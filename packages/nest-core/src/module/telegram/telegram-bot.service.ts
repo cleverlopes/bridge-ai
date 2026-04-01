@@ -421,7 +421,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async persistEvent(ctx: Context, payload: ReturnType<typeof CanonicalPayloadBuilder.fromContext>): Promise<void> {
+  private async persistEvent(_ctx: Context, payload: ReturnType<typeof CanonicalPayloadBuilder.fromContext>): Promise<void> {
     try {
       await this.events.publish({
         type: payload.type,

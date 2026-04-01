@@ -2,7 +2,7 @@
 
 // This file is used in test contexts, but is included in the library TS build.
 // Declare `jest` to keep the build type-safe without requiring Jest globals.
-declare const jest: { fn: (...args: unknown[]) => any };
+declare const jest: { fn: (...args: unknown[]) => unknown };
 
 export interface ProviderConfig {
   type: 'openrouter' | 'gemini' | 'openai' | 'claude-cli' | 'gemini-cli' | 'custom-cli';
@@ -11,18 +11,6 @@ export interface ProviderConfig {
   command?: string;
   args?: string[];
 }
-
-const makeMockProvider = (name: string) => ({
-  providerName: name,
-  generate: jest.fn().mockResolvedValue({
-    success: true,
-    sessionId: `${name}-session`,
-    totalCostUsd: 0.001,
-    durationMs: 100,
-    usage: { inputTokens: 10, outputTokens: 5, cacheReadInputTokens: 0, cacheCreationInputTokens: 0 },
-    numTurns: 1,
-  }),
-});
 
 export class OpenRouterProvider {
   readonly providerName = 'openrouter';

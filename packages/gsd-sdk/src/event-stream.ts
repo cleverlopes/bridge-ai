@@ -142,7 +142,6 @@ import {
   type GSDTaskStartedEvent,
   type GSDTaskProgressEvent,
   type GSDTaskNotificationEvent,
-  type GSDCostUpdateEvent,
   type GSDAPIRetryEvent,
   type GSDRateLimitEvent as GSDRateLimitEventType,
   type GSDStatusChangeEvent,

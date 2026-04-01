@@ -3,7 +3,7 @@
 
 // This file is used in test contexts, but is included in the library TS build.
 // Declare `jest` to keep the build type-safe without requiring Jest globals.
-declare const jest: { fn: (...args: unknown[]) => any };
+declare const jest: { fn: (...args: unknown[]) => unknown };
 
 export interface ProviderOptions {
   model?: string;

@@ -14,7 +14,6 @@ import type {
   PhaseRunnerOptions,
   PlanResult,
   SessionOptions,
-  ParsedPlan,
   PhasePlanIndex,
   PlanInfo,
 } from './types.js';
@@ -25,7 +24,7 @@ import type { GSDEventStream } from './event-stream.js';
 import type { PromptFactory } from './phase-prompt.js';
 import type { ContextEngine } from './context-engine.js';
 import type { GSDLogger } from './logger.js';
-import { runPhaseStepSession, runPlanSession } from './session-runner.js';
+import { runPhaseStepSession } from './session-runner.js';
 import type { ProviderAdapter } from './provider-adapter.js';
 
 // ─── Error type ──────────────────────────────────────────────────────────────
@@ -325,8 +324,8 @@ export class PhaseRunner {
 
     let planResult: PlanResult;
     try {
-      // Load plan-checker agent definition (same pattern as PromptFactory.loadAgentDef)
-      const agentDef = await this.promptFactory.loadAgentDef(PhaseType.Verify);
+      // Warm/load plan-checker agent definition (same pattern as PromptFactory.loadAgentDef)
+      await this.promptFactory.loadAgentDef(PhaseType.Verify);
 
       // Build prompt using Verify phase type for context resolution
       const contextFiles = await this.contextEngine.resolveContextFiles(PhaseType.Verify);
@@ -726,7 +725,7 @@ export class PhaseRunner {
    * Execute a single plan by ID within the execute step.
    */
   private async executeSinglePlan(
-    phaseNumber: string,
+    _phaseNumber: string,
     planId: string,
     sessionOpts: SessionOptions,
   ): Promise<PlanResult> {
@@ -790,6 +789,7 @@ export class PhaseRunner {
     let outcome: VerificationOutcome = 'passed';
     const allPlanResults: PlanResult[] = [];
 
+    /* eslint-disable-next-line no-constant-condition -- verification loop exits via break/return */
     while (true) {
       try {
         const phaseType = PhaseType.Verify;
