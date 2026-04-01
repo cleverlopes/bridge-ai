@@ -4,14 +4,15 @@ import { WorkspaceSnapshot } from '../../persistence/entity/workspace-snapshot.e
 import { Project } from '../../persistence/entity/project.entity';
 import { KsmModule } from '../ksm/ksm.module';
 import { WorkspaceOnboardingService } from './workspace-onboarding.service';
+import { RepoIndexerService } from './repo-indexer.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([WorkspaceSnapshot, Project]),
     KsmModule,
   ],
-  providers: [WorkspaceOnboardingService],
+  providers: [WorkspaceOnboardingService, RepoIndexerService],
   controllers: [],
-  exports: [WorkspaceOnboardingService],
+  exports: [WorkspaceOnboardingService, RepoIndexerService],
 })
 export class WorkspaceModule {}
