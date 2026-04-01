@@ -20,6 +20,8 @@ import { PipelineModule } from './module/pipeline/pipeline.module';
 import { DockerModule } from './module/docker/docker.module';
 import { MetricsModule } from './module/metrics/metrics.module';
 import { ObsidianModule } from './module/obsidian/obsidian.module';
+import { WorkspaceModule } from './module/workspace/workspace.module';
+import { WorkspaceSnapshot } from './persistence/entity/workspace-snapshot.entity';
 
 @Module({
   imports: [
@@ -34,7 +36,7 @@ import { ObsidianModule } from './module/obsidian/obsidian.module';
       useFactory: (config: ConfigService) => ({
         type: 'postgres' as const,
         url: config.get<string>('DATABASE_URL'),
-        entities: [Project, Plan, Phase, ExecutionMetric, AppEvent, Secret, SecretAudit],
+        entities: [Project, Plan, Phase, ExecutionMetric, AppEvent, Secret, SecretAudit, WorkspaceSnapshot],
         migrations: ['dist/migrations/*.js'],
         synchronize: false,
         logging: config.get<string>('NODE_ENV') !== 'production',
@@ -60,6 +62,7 @@ import { ObsidianModule } from './module/obsidian/obsidian.module';
     DockerModule,
     MetricsModule,
     ObsidianModule,
+    WorkspaceModule,
   ],
 })
 export class AppModule {}

@@ -22,6 +22,7 @@
     "@nestjs/typeorm": "^10.0.2",
     "bullmq": "^5.4.2",
     "dockerode": "^4.0.10",
+    "simple-git": "^3.33.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "telegraf": "^4.16.3",
