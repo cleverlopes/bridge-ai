@@ -1,23 +1,29 @@
 import {
   Injectable,
   Logger,
-  Optional,
-  OnModuleInit,
   OnModuleDestroy,
+  OnModuleInit,
+  Optional,
 } from '@nestjs/common';
-import { Telegraf, Context } from 'telegraf';
-import { KsmService } from '../ksm/ksm.service';
-import { EventsService, QUEUE_PROJECT_EVENTS, QUEUE_WORKFLOW_EVENTS } from '../events/events.service';
-import { ProjectService } from '../project/project.service';
-import { PlanService } from '../plan/plan.service';
+import { Context, Telegraf } from 'telegraf';
 import { BrainService } from '../brain/brain.service';
 import { DockerService } from '../docker/docker.service';
+import { EventsService, QUEUE_PROJECT_EVENTS, QUEUE_WORKFLOW_EVENTS } from '../events/events.service';
+import { KsmService } from '../ksm/ksm.service';
+import { PlanService } from '../plan/plan.service';
+import { ProjectService } from '../project/project.service';
+import { CanonicalPayloadBuilder } from './canonical-payload.builder';
 import { ConversationStateService } from './conversation-state.service';
 import { TelegramNotifierService } from './telegram-notifier.service';
-import { CanonicalPayloadBuilder } from './canonical-payload.builder';
 import { TelegramThrottlerGuard } from './telegram-throttler.guard';
 
-const BOT_TOKEN_KEY = 'telegram-bot-token';
+/** KSM secret name for the bot token (not the token itself). */
+const DEFAULT_KSM_BOT_TOKEN_NAME = 'telegram-bot-token';
+
+function looksLikeTelegramBotToken(value: string): boolean {
+  const v = value.trim();
+  return /^\d{6,}:[A-Za-z0-9_-]+$/.test(v);
+}
 
 @Injectable()
 export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
@@ -38,7 +44,22 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    const token = await this.ksm.getSecret(BOT_TOKEN_KEY, 'global', undefined, 'TelegramBotService');
+    const directToken = process.env['TELEGRAM_BOT_TOKEN']?.trim();
+    const botTokenKeyEnv = process.env['BOT_TOKEN_KEY']?.trim();
+
+    let token: string;
+    if (directToken) {
+      token = directToken;
+    } else if (botTokenKeyEnv && looksLikeTelegramBotToken(botTokenKeyEnv)) {
+      this.logger.warn(
+        'BOT_TOKEN_KEY looks like a raw Telegram bot token. Use TELEGRAM_BOT_TOKEN for the token; BOT_TOKEN_KEY should be the KSM secret name (default telegram-bot-token).',
+      );
+      token = botTokenKeyEnv;
+    } else {
+      const secretName = botTokenKeyEnv ?? DEFAULT_KSM_BOT_TOKEN_NAME;
+      token = await this.ksm.getSecret(secretName, 'global', undefined, 'TelegramBotService');
+    }
+
     this.bot = new Telegraf(token);
     this.notifier.setBot(this.bot);
 

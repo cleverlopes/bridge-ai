@@ -1,6 +1,15 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@bridge-ai/gsd-sdk': path.resolve(__dirname, '../gsd-sdk/src/index.ts'),
+    },
+  },
   test: {
     globals: true,
     environment: 'node',

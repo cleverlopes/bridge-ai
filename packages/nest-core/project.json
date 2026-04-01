@@ -5,10 +5,6 @@
   "projectType": "library",
   "tags": ["lib", "nest"],
   "targets": {
-    "build": {
-      "executor": "nx:run-commands",
-      "options": { "command": "bun run build", "cwd": "packages/nest-core" }
-    },
     "test": {
       "executor": "nx:run-commands",
       "outputs": ["{projectRoot}/coverage"],

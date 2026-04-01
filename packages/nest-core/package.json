@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "description": "Bridge AI — NestJS application core: entities, modules and app configuration",
   "type": "commonjs",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.lib.json",
+    "typecheck": "tsc -p tsconfig.lib.json --noEmit",
     "test": "jest",
     "test:cov": "jest --coverage"
   },

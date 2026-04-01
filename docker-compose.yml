@@ -30,10 +30,13 @@ services:
       retries: 5
 
   api:
+    image: bridge-ai/api:local
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     container_name: bridge-api
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://bridge:bridge@postgres:5432/bridge
       REDIS_URL: redis://redis:6379
