@@ -11,6 +11,8 @@
     "test:cov": "jest --coverage"
   },
   "dependencies": {
+    "@bridge-ai/bridge-sdk": "workspace:*",
+    "@bridge-ai/gsd-sdk": "workspace:*",
     "@nestjs/bull": "^10.2.1",
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.2.0",
