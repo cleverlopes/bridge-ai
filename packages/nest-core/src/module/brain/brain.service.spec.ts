@@ -1,24 +1,10 @@
 import { KsmService } from '../ksm/ksm.service';
 import { EventsService } from '../events/events.service';
 import { BrainService } from './brain.service';
-import type { GenerationResult } from '@bridge-ai/gsd-sdk';
-import { OpenRouterProvider, GeminiProvider, ClaudeCliProvider } from '@bridge-ai/bridge-sdk';
-
-const makeGenerationResult = (overrides: Partial<GenerationResult> = {}): GenerationResult => ({
-  success: true,
-  sessionId: 'session-test',
-  totalCostUsd: 0.002,
-  durationMs: 300,
-  usage: {
-    inputTokens: 50,
-    outputTokens: 25,
-    cacheReadInputTokens: 0,
-    cacheCreationInputTokens: 0,
-  },
-  numTurns: 1,
-  ...overrides,
-});
-
+import {
+  __bridgeSdk_resetGenerateState,
+  __bridgeSdk_setFailNextGenerations,
+} from '../../__mocks__/bridge-sdk';
 const makeKsmService = (): jest.Mocked<KsmService> =>
   ({
     getSecret: jest.fn(),
@@ -39,6 +25,7 @@ describe('BrainService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    __bridgeSdk_resetGenerateState();
     ksm = makeKsmService();
     events = makeEventsService();
     service = new BrainService(ksm, events);
@@ -110,6 +97,98 @@ describe('BrainService', () => {
       process.env['GEMINI_API_KEY'] = 'gemini-key';
 
       const result = await service.generate('test', {});
+      expect(result.success).toBe(true);
+    });
+
+    it('falls back to OpenAI when OPENAI_API_KEY is set and higher-priority keys are not', async () => {
+      ksm.getSecret.mockRejectedValue(new Error('not found'));
+      process.env['OPENAI_API_KEY'] = 'openai-key';
+
+      const result = await service.generate('test', {});
+      expect(result.success).toBe(true);
+    });
+
+    it('uses OpenAI provider from KSM project config', async () => {
+      ksm.getSecret.mockResolvedValue(JSON.stringify({ type: 'openai', apiKey: 'proj-openai' }));
+
+      await service.generate('hello', { projectId: 'proj-openai-1' });
+
+      expect(ksm.getSecret).toHaveBeenCalled();
+    });
+
+    it('uses Claude CLI provider from KSM when type is claude-cli', async () => {
+      ksm.getSecret.mockResolvedValue(JSON.stringify({ type: 'claude-cli', apiKey: undefined }));
+
+      await service.generate('hello', { projectId: 'proj-cli' });
+
+      expect(ksm.getSecret).toHaveBeenCalled();
+    });
+
+    it('uses Gemini CLI provider from KSM when type is gemini-cli', async () => {
+      ksm.getSecret.mockResolvedValue(JSON.stringify({ type: 'gemini-cli' }));
+
+      await service.generate('hello', { projectId: 'proj-gcli' });
+
+      expect(ksm.getSecret).toHaveBeenCalled();
+    });
+
+    it('uses custom-cli provider from KSM when command is set', async () => {
+      ksm.getSecret.mockResolvedValue(
+        JSON.stringify({ type: 'custom-cli', command: 'echo', args: ['hi'] }),
+      );
+
+      await service.generate('hello', { projectId: 'proj-custom' });
+
+      expect(ksm.getSecret).toHaveBeenCalled();
+    });
+
+    it('falls back when stored OpenRouter config is invalid (missing apiKey)', async () => {
+      ksm.getSecret.mockResolvedValue(JSON.stringify({ type: 'openrouter' }));
+      process.env['OPENROUTER_API_KEY'] = 'env-fallback';
+
+      const result = await service.generate('x', { projectId: 'bad-invalid-or' });
+      expect(result.success).toBe(true);
+    });
+
+    it('falls back when stored Gemini config is invalid (missing apiKey)', async () => {
+      ksm.getSecret.mockResolvedValue(JSON.stringify({ type: 'gemini' }));
+      process.env['GEMINI_API_KEY'] = 'env-gem';
+
+      const result = await service.generate('x', { projectId: 'bad-invalid-gem' });
+      expect(result.success).toBe(true);
+    });
+
+    it('falls back when stored OpenAI config is invalid (missing apiKey)', async () => {
+      ksm.getSecret.mockResolvedValue(JSON.stringify({ type: 'openai' }));
+      process.env['OPENAI_API_KEY'] = 'env-oai';
+
+      const result = await service.generate('x', { projectId: 'bad-invalid-oai' });
+      expect(result.success).toBe(true);
+    });
+
+    it('falls back when stored custom-cli config is invalid (missing command)', async () => {
+      ksm.getSecret.mockResolvedValue(JSON.stringify({ type: 'custom-cli' }));
+      process.env['OPENROUTER_API_KEY'] = 'env-or';
+
+      const result = await service.generate('x', { projectId: 'bad-invalid-cli' });
+      expect(result.success).toBe(true);
+    });
+
+    it('warns and continues when cost event publish fails', async () => {
+      process.env['OPENROUTER_API_KEY'] = 'test-or-key';
+      ksm.getSecret.mockRejectedValue(new Error('not found'));
+      events.publish.mockRejectedValueOnce(new Error('queue down'));
+
+      const result = await service.generate('hello', {});
+      expect(result.success).toBe(true);
+    });
+
+    it('warns with non-Error when cost event publish fails', async () => {
+      process.env['OPENROUTER_API_KEY'] = 'test-or-key';
+      ksm.getSecret.mockRejectedValue(new Error('not found'));
+      events.publish.mockRejectedValueOnce('broken');
+
+      const result = await service.generate('hello', {});
       expect(result.success).toBe(true);
     });
 
@@ -190,6 +269,17 @@ describe('BrainService', () => {
       const result = await service.checkProvider();
       expect(typeof result.provider).toBe('string');
     });
+
+    it('returns healthy:false when generate fails', async () => {
+      ksm.getSecret.mockRejectedValue(new Error('no config'));
+      process.env['OPENROUTER_API_KEY'] = 'test-key';
+      __bridgeSdk_setFailNextGenerations(1);
+
+      const result = await service.checkProvider();
+
+      expect(result.healthy).toBe(false);
+      expect(result.error).toContain('mock failure');
+    });
   });
 
   describe('generateWithFallback()', () => {
@@ -205,6 +295,28 @@ describe('BrainService', () => {
       // The mock returns success by default
       const result = await service.generateWithFallback('test', {});
       expect(result).toHaveProperty('success');
+    });
+
+    it('uses the next provider when the first fails in the chain', async () => {
+      process.env['OPENROUTER_API_KEY'] = 'a';
+      process.env['GEMINI_API_KEY'] = 'b';
+      __bridgeSdk_setFailNextGenerations(1);
+
+      const result = await service.generateWithFallback('test', {});
+
+      expect(result.success).toBe(true);
+    });
+
+    it('returns all_providers_failed when every provider fails', async () => {
+      process.env['OPENROUTER_API_KEY'] = 'a';
+      process.env['GEMINI_API_KEY'] = 'b';
+      process.env['OPENAI_API_KEY'] = 'c';
+      __bridgeSdk_setFailNextGenerations(20);
+
+      const result = await service.generateWithFallback('test', {});
+
+      expect(result.success).toBe(false);
+      expect(result.error?.subtype).toBe('all_providers_failed');
     });
   });
 

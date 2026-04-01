@@ -140,7 +140,7 @@ describe('ProjectService', () => {
       projectRepo.save.mockResolvedValue(updatedProject as Project);
 
       const dto: UpdateProjectDto = { settings: { providerId: 'openrouter' } };
-      const result = await service.update(project.id, dto);
+      await service.update(project.id, dto);
 
       expect(projectRepo.save).toHaveBeenCalled();
       const saveArg = projectRepo.save.mock.calls[0]![0] as Project;
@@ -155,7 +155,7 @@ describe('ProjectService', () => {
       projectRepo.save.mockResolvedValue(updatedProject);
 
       const dto: UpdateProjectDto = { name: 'Updated Name' };
-      const result = await service.update(project.id, dto);
+      await service.update(project.id, dto);
 
       expect(projectRepo.save).toHaveBeenCalled();
     });

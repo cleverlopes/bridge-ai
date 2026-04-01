@@ -3,6 +3,7 @@
 
 // This file is used in test contexts, but is included in the library TS build.
 // Declare `jest` to keep the build type-safe without requiring Jest globals.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const jest: { fn: (...args: unknown[]) => any };
 
 export interface ProviderOptions {

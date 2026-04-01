@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { mkdir, writeFile, readFile, copyFile, rename, access, readdir } from 'node:fs/promises';
+import { mkdir, writeFile, copyFile, rename, access, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import type { GSDPhaseCompleteEvent } from '@bridge-ai/gsd-sdk';
 import { ExecutionMetric } from '../../persistence/entity/execution-metric.entity';

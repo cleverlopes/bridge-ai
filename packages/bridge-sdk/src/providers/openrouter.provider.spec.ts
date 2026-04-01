@@ -140,4 +140,60 @@ describe('OpenRouterProvider', () => {
     expect(result.success).toBe(false);
     expect(result.error?.subtype).toBe('parse_error');
   });
+
+  it('treats non-numeric generation cost header as 0', async () => {
+    const provider = new OpenRouterProvider('test-key');
+    mockFetch.mockResolvedValueOnce(
+      makeOkResponse(
+        {
+          id: 'gen-nan',
+          choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }],
+        },
+        { 'x-openrouter-generation-cost': 'not-a-number' },
+      ),
+    );
+
+    const result = await provider.generate('test', {});
+    expect(result.success).toBe(true);
+    expect(result.totalCostUsd).toBe(0);
+  });
+
+  it('uses sessionId from body when id is missing', async () => {
+    const provider = new OpenRouterProvider('test-key');
+    mockFetch.mockResolvedValueOnce(
+      makeOkResponse({
+        choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }],
+      }),
+    );
+
+    const result = await provider.generate('test', {});
+    expect(result.success).toBe(true);
+    expect(result.sessionId).toMatch(/[0-9a-f-]{36}/i);
+  });
+
+  it('returns provider_error when HTTP body text() fails', async () => {
+    const provider = new OpenRouterProvider('test-key');
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: vi.fn().mockResolvedValue({}),
+      text: vi.fn().mockRejectedValue(new Error('read fail')),
+      headers: { get: vi.fn().mockReturnValue(null) },
+    });
+
+    const result = await provider.generate('test', {});
+    expect(result.success).toBe(false);
+    expect(result.error?.subtype).toBe('provider_error');
+    expect(result.error?.messages[0]).toContain('HTTP 500');
+  });
+
+  it('network_error uses string message for non-Error throws', async () => {
+    const provider = new OpenRouterProvider('test-key');
+    mockFetch.mockRejectedValueOnce('boom');
+
+    const result = await provider.generate('test', {});
+    expect(result.success).toBe(false);
+    expect(result.error?.subtype).toBe('network_error');
+    expect(result.error?.messages).toContain('Network error');
+  });
 });

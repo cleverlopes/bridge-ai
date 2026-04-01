@@ -171,4 +171,18 @@ describe('Pipeline', () => {
     const instance = mockGSDInstances[mockGSDInstances.length - 1]!;
     expect(instance.opts['projectDir']).toBe('/my/workspace');
   });
+
+  it('onEvent forwards handlers to the underlying GSD', () => {
+    const handler = vi.fn();
+    const pipeline = new Pipeline({
+      provider: makeProvider(),
+      obsidianVaultPath: '/vault',
+      workspacePath: '/workspace',
+    });
+
+    pipeline.onEvent(handler);
+
+    const instance = mockGSDInstances[mockGSDInstances.length - 1]!;
+    expect(instance.onEvent).toHaveBeenCalledWith(handler);
+  });
 });

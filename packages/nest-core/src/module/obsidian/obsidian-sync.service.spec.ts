@@ -14,6 +14,7 @@ jest.mock('node:fs/promises', () => ({
   readFile: jest.fn().mockResolvedValue(''),
   copyFile: jest.fn().mockResolvedValue(undefined),
   rename: jest.fn().mockResolvedValue(undefined),
+  readdir: jest.fn().mockResolvedValue([]),
   access: jest.fn().mockRejectedValue({ code: 'ENOENT' }),
 }));
 
@@ -84,12 +85,14 @@ describe('ObsidianSyncService', () => {
   let mkdir: jest.MockedFunction<typeof fsPromises.mkdir>;
   let writeFile: jest.MockedFunction<typeof fsPromises.writeFile>;
   let access: jest.MockedFunction<typeof fsPromises.access>;
+  let readdir: jest.MockedFunction<typeof fsPromises.readdir>;
 
   beforeEach(() => {
     jest.resetAllMocks();
     mkdir = jest.mocked(fsPromises.mkdir);
     writeFile = jest.mocked(fsPromises.writeFile);
     access = jest.mocked(fsPromises.access);
+    readdir = jest.mocked(fsPromises.readdir);
     // Restore default resolved behavior after reset
     mkdir.mockResolvedValue(undefined);
     writeFile.mockResolvedValue(undefined);
@@ -97,6 +100,7 @@ describe('ObsidianSyncService', () => {
     jest.mocked(fsPromises.copyFile).mockResolvedValue(undefined);
     jest.mocked(fsPromises.readFile).mockResolvedValue('');
     jest.mocked(fsPromises.rename).mockResolvedValue(undefined);
+    readdir.mockResolvedValue([]);
     projectRepo = makeProjectRepo();
     planRepo = makePlanRepo();
     phaseRepo = makePhaseRepo();
@@ -132,6 +136,25 @@ describe('ObsidianSyncService', () => {
       mkdir.mockRejectedValue(new Error('permission denied'));
       await expect(service.ensureVaultStructure()).resolves.not.toThrow();
     });
+
+    it('skips writing RULES when the file already exists', async () => {
+      access.mockResolvedValueOnce(undefined);
+
+      await service.ensureVaultStructure();
+
+      const rulesWrites = writeFile.mock.calls.filter(c => (c[0] as string).includes('RULES-AND-CONVENTIONS'));
+      expect(rulesWrites.length).toBe(0);
+    });
+
+    it('calls generateIndex when index.md is missing after other setup', async () => {
+      const genSpy = jest.spyOn(service, 'generateIndex').mockResolvedValue(undefined);
+      try {
+        await service.ensureVaultStructure();
+        expect(genSpy).toHaveBeenCalled();
+      } finally {
+        genSpy.mockRestore();
+      }
+    });
   });
 
   describe('generateIndex()', () => {
@@ -143,6 +166,11 @@ describe('ObsidianSyncService', () => {
         expect.stringContaining('dataview'),
         'utf8',
       );
+    });
+
+    it('does not throw when writeFile fails', async () => {
+      writeFile.mockRejectedValue(new Error('disk full'));
+      await expect(service.generateIndex()).resolves.not.toThrow();
     });
   });
 
@@ -166,6 +194,29 @@ describe('ObsidianSyncService', () => {
       expect(writeCall).toBeDefined();
       const content = writeCall![1] as string;
       expect(content).toContain('Total Phases');
+    });
+
+    it('formats multi-hour durations in the dashboard', async () => {
+      metricsService.getAggregatedMetrics.mockResolvedValueOnce({
+        totalCostUsd: 1,
+        totalDurationMs: 3661000,
+        totalPhases: 2,
+        successRate: 100,
+        byProject: [],
+        byModel: [],
+      });
+
+      await service.generateMetricsDashboard();
+
+      const writeCall = writeFile.mock.calls.find(c =>
+        (c[0] as string).includes('metrics.md'),
+      );
+      expect((writeCall![1] as string).toLowerCase()).toContain('h ');
+    });
+
+    it('does not throw when getAggregatedMetrics fails', async () => {
+      metricsService.getAggregatedMetrics.mockRejectedValueOnce(new Error('db'));
+      await expect(service.generateMetricsDashboard()).resolves.not.toThrow();
     });
   });
 
@@ -226,6 +277,182 @@ describe('ObsidianSyncService', () => {
       writeFile.mockRejectedValue(new Error('write error'));
 
       await expect(service.syncProject('proj-1')).resolves.not.toThrow();
+    });
+
+    it('syncs phase artifacts and copies PLAN-prefixed markdown', async () => {
+      const project = makeProject();
+      const plan = {
+        id: 'plan-1',
+        projectId: 'proj-1',
+        status: 'executing',
+        createdAt: new Date(),
+      } as Plan;
+      const phase = {
+        id: 'ph-1',
+        planId: 'plan-1',
+        phaseNumber: 2,
+        phaseName: 'Build Feature',
+        status: 'running',
+      } as Phase;
+
+      projectRepo.findOne.mockResolvedValue(project);
+      planRepo.findOne.mockResolvedValue(plan);
+      phaseRepo.find.mockResolvedValue([phase]);
+      metricRepo.find.mockResolvedValue([{ costUsd: 0.25 } as ExecutionMetric]);
+      access.mockResolvedValue(undefined);
+      readdir.mockImplementationOnce(
+        async () =>
+          ['PLAN-alt.md', 'PLAN_backup.md', 'skip.txt'] as unknown as Awaited<
+            ReturnType<typeof fsPromises.readdir>
+          >,
+      );
+
+      await service.syncProject('proj-1');
+
+      const copyFile = jest.mocked(fsPromises.copyFile);
+      expect(copyFile).toHaveBeenCalledWith(
+        expect.stringContaining('PLAN-alt.md'),
+        expect.stringContaining('PLAN-alt.md'),
+      );
+    });
+
+    it('skips optional workspace phase readdir errors', async () => {
+      const project = makeProject();
+      const plan = { id: 'plan-1', projectId: 'proj-1', status: 'executing', createdAt: new Date() } as Plan;
+      const phase = {
+        id: 'ph-1',
+        planId: 'plan-1',
+        phaseNumber: 1,
+        phaseName: 'Alpha',
+        status: 'running',
+      } as Phase;
+
+      projectRepo.findOne.mockResolvedValue(project);
+      planRepo.findOne.mockResolvedValue(plan);
+      phaseRepo.find.mockResolvedValue([phase]);
+      metricRepo.find.mockResolvedValue([]);
+      access.mockResolvedValue(undefined);
+      readdir.mockRejectedValueOnce(new Error('no dir'));
+
+      await expect(service.syncProject('proj-1')).resolves.not.toThrow();
+    });
+  });
+
+  describe('getProjectSlug()', () => {
+    it('returns slug when project exists', async () => {
+      projectRepo.findOne.mockResolvedValue(makeProject());
+
+      await expect(service.getProjectSlug('proj-1')).resolves.toBe('test-project');
+    });
+
+    it('returns null when project is missing', async () => {
+      projectRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.getProjectSlug('missing')).resolves.toBeNull();
+    });
+  });
+
+  describe('ensureTemplates()', () => {
+    it('writes template files that are missing', async () => {
+      await service.ensureTemplates();
+
+      expect(mkdir).toHaveBeenCalledWith(expect.stringContaining('Templates'), expect.any(Object));
+      expect(writeFile.mock.calls.length).toBeGreaterThan(0);
+    });
+
+    it('does not throw on failure', async () => {
+      mkdir.mockRejectedValueOnce(new Error('eacces'));
+      await expect(service.ensureTemplates()).resolves.not.toThrow();
+    });
+  });
+
+  describe('archiveProject()', () => {
+    it('returns early when project is not found', async () => {
+      projectRepo.findOne.mockResolvedValue(null);
+
+      await service.archiveProject('nope');
+
+      expect(jest.mocked(fsPromises.rename)).not.toHaveBeenCalled();
+    });
+
+    it('returns early when latest plan is not terminal', async () => {
+      const project = makeProject();
+      projectRepo.findOne.mockResolvedValue(project);
+      planRepo.findOne.mockResolvedValue({
+        id: 'p1',
+        projectId: project.id,
+        status: 'executing',
+        createdAt: new Date(),
+      } as Plan);
+
+      await service.archiveProject(project.id);
+
+      expect(jest.mocked(fsPromises.rename)).not.toHaveBeenCalled();
+    });
+
+    it('renames vault folder when plan is completed and source exists', async () => {
+      const project = makeProject();
+      projectRepo.findOne.mockResolvedValue(project);
+      planRepo.findOne.mockResolvedValue({
+        id: 'p1',
+        projectId: project.id,
+        status: 'completed',
+        createdAt: new Date(),
+      } as Plan);
+      access.mockResolvedValue(undefined);
+
+      await service.archiveProject(project.id);
+
+      expect(jest.mocked(fsPromises.rename)).toHaveBeenCalled();
+    });
+
+    it('does not throw when rename fails', async () => {
+      const project = makeProject();
+      projectRepo.findOne.mockResolvedValue(project);
+      planRepo.findOne.mockResolvedValue({
+        id: 'p1',
+        projectId: project.id,
+        status: 'completed',
+        createdAt: new Date(),
+      } as Plan);
+      access.mockResolvedValue(undefined);
+      jest.mocked(fsPromises.rename).mockRejectedValueOnce(new Error('busy'));
+
+      await expect(service.archiveProject(project.id)).resolves.not.toThrow();
+    });
+  });
+
+  describe('onPlanComplete() and onMilestoneComplete()', () => {
+    it('onPlanComplete triggers sync and dashboard refresh', async () => {
+      const project = makeProject();
+      projectRepo.findOne.mockResolvedValue(project);
+      planRepo.findOne.mockResolvedValue(null);
+      phaseRepo.find.mockResolvedValue([]);
+      metricRepo.find.mockResolvedValue([]);
+
+      const spy = jest.spyOn(service, 'syncProject').mockResolvedValue(undefined);
+      try {
+        await service.onPlanComplete('plan-x', 'proj-1');
+        expect(spy).toHaveBeenCalledWith('proj-1');
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('onMilestoneComplete triggers sync', async () => {
+      const project = makeProject();
+      projectRepo.findOne.mockResolvedValue(project);
+      planRepo.findOne.mockResolvedValue(null);
+      phaseRepo.find.mockResolvedValue([]);
+      metricRepo.find.mockResolvedValue([]);
+
+      const spy = jest.spyOn(service, 'syncProject').mockResolvedValue(undefined);
+      try {
+        await service.onMilestoneComplete('proj-1');
+        expect(spy).toHaveBeenCalledWith('proj-1');
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 

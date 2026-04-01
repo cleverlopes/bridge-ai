@@ -144,4 +144,48 @@ describe('GeminiProvider', () => {
     const [url] = mockFetch.mock.calls[0] as [string];
     expect(url).toContain('gemini-');
   });
+
+  it('treats 200 response with body.error as provider_error', async () => {
+    const provider = new GeminiProvider('test-key');
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({
+        error: { code: 403, message: 'API not enabled' },
+      }),
+      headers: { get: vi.fn().mockReturnValue(null) },
+    });
+
+    const result = await provider.generate('test', {});
+
+    expect(result.success).toBe(false);
+    expect(result.error?.subtype).toBe('provider_error');
+    expect(result.error?.messages[0]).toContain('API not enabled');
+  });
+
+  it('uses zero token counts when usageMetadata is absent', async () => {
+    const provider = new GeminiProvider('test-key');
+    mockFetch.mockResolvedValueOnce(
+      makeOkResponse({
+        candidates: [{ content: { parts: [{ text: 'ok' }] }, finishReason: 'STOP' }],
+      }),
+    );
+
+    const result = await provider.generate('test', {});
+
+    expect(result.success).toBe(true);
+    expect(result.usage.inputTokens).toBe(0);
+    expect(result.usage.outputTokens).toBe(0);
+  });
+
+  it('network_error uses fallback message for non-Error throws', async () => {
+    const provider = new GeminiProvider('test-key');
+    mockFetch.mockRejectedValueOnce('timeout');
+
+    const result = await provider.generate('test', {});
+
+    expect(result.success).toBe(false);
+    expect(result.error?.subtype).toBe('network_error');
+    expect(result.error?.messages).toContain('Network error');
+  });
 });

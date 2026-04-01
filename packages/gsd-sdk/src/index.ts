@@ -23,11 +23,10 @@ import type {
   RoadmapPhaseInfo,
 } from './types.js';
 import { GSDEventType } from './types.js';
-import { parsePlan, parsePlanFile } from './plan-parser.js';
+import { parsePlanFile } from './plan-parser.js';
 import { loadConfig } from './config.js';
 import { GSDTools, resolveGsdToolsPath } from './gsd-tools.js';
 import { runPlanSession } from './session-runner.js';
-import { buildExecutorPrompt, parseAgentTools } from './prompt-builder.js';
 import { GSDEventStream } from './event-stream.js';
 import { PhaseRunner } from './phase-runner.js';
 import { ContextEngine } from './context-engine.js';
@@ -154,7 +153,7 @@ export class GSD {
 
         const updatedAnalysis = await tools.roadmapAnalyze();
         currentPhases = this.filterAndSortPhases(updatedAnalysis.phases);
-      } catch (err) {
+      } catch (_err) {
         phaseResults.push({
           phaseNumber: phase.number,
           phaseName: phase.phase_name,
