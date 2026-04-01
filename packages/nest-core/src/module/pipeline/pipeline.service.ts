@@ -1,4 +1,6 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { resolve } from 'node:path';
 import { GSD, ObsidianTransport, PostgresTransport, GSDEventType } from '@bridge-ai/gsd-sdk';
 import type { GSDEvent, GSDPhaseStartEvent, GSDPhaseCompleteEvent, GSDMilestoneStartEvent, GSDCostUpdateEvent } from '@bridge-ai/gsd-sdk';
@@ -10,6 +12,8 @@ import { WorkspaceService } from './workspace.service';
 import { HumanGateBridge } from './human-gate.bridge';
 import { DockerService } from '../docker/docker.service';
 import { ObsidianSyncService } from '../obsidian/obsidian-sync.service';
+import { EphemeralWorkspaceService } from '../workspace/ephemeral-workspace.service';
+import { WorkspaceSnapshot } from '../../persistence/entity/workspace-snapshot.entity';
 
 const OBSIDIAN_VAULT_PATH = resolve(process.cwd(), 'volumes', 'obsidian');
 
@@ -26,6 +30,9 @@ export class PipelineService {
     private readonly humanGate: HumanGateBridge,
     private readonly obsidian: ObsidianSyncService,
     @Optional() private readonly docker: DockerService | null,
+    @Optional() private readonly ephemeralWorkspace: EphemeralWorkspaceService | null,
+    @InjectRepository(WorkspaceSnapshot)
+    private readonly snapshotRepo: Repository<WorkspaceSnapshot>,
   ) {}
 
   async executeProject(planId: string): Promise<void> {
@@ -34,7 +41,17 @@ export class PipelineService {
     const conversationId = plan.conversationId ?? null;
     const prompt = plan.prompt ?? '';
 
-    const workspacePath = this.workspace.provisionWorkspace(projectId, planId);
+    const snapshot = await this.snapshotRepo.findOne({ where: { projectId } });
+    let runId: string | null = null;
+    let workspacePath: string;
+
+    if (snapshot && this.ephemeralWorkspace) {
+      runId = planId;
+      workspacePath = await this.ephemeralWorkspace.cloneForRun(snapshot.workspacePath, runId);
+      this.logger.log(`Using ephemeral workspace for project ${projectId} at ${workspacePath}`);
+    } else {
+      workspacePath = this.workspace.provisionWorkspace(projectId, planId);
+    }
 
     let containerId: string | null = null;
     if (this.docker) {
@@ -129,6 +146,11 @@ export class PipelineService {
     } finally {
       gsd.eventStream.closeAll();
       await this.cleanupContainer(projectId, containerId);
+      if (runId && this.ephemeralWorkspace) {
+        await this.ephemeralWorkspace.cleanupRun(runId).catch((e: unknown) => {
+          this.logger.warn(`Failed to cleanup ephemeral workspace for run ${runId}: ${e instanceof Error ? e.message : e}`);
+        });
+      }
     }
   }
 
