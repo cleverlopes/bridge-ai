@@ -1,6 +1,6 @@
 # Project State: bridge-ai
 
-**Last updated:** 2026-04-01
+**Last updated:** 2026-04-01 (8.5-03 complete)
 
 ---
 
@@ -16,11 +16,11 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 ## Current Position
 
 **Milestone:** 2 — Four-Plane Foundation
-**Phase:** 8.5 (next to start — Workspace Onboarding + Repo Indexing)
-**Plans:** None created yet for Phase 8.5
+**Phase:** 8.5 — Workspace Onboarding + Repo Indexing (in progress)
+**Plans:** 3 of 6 complete (8.5-01, 8.5-02, 8.5-03)
 
 **Milestone 1 (MVP):** ✅ Complete — Phases 1–6 all committed
-**Milestone 2 progress:** 2 of 7 phases mostly done, 5 not started
+**Milestone 2 progress:** Phase 8.5 in progress (plans 01-03 of 6 done)
 
 ---
 
@@ -36,7 +36,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 | 6 | Obsidian Vault Sync | ✅ Complete | |
 | 7 | Test Coverage + CI | ✅ Mostly done | Gap: CI doesn't enforce coverage threshold as failing gate |
 | 8 | Security Hardening | ✅ Mostly done | Gap: docs/SECURITY.md not written. Throttling IS implemented. |
-| 8.5 | Workspace Onboarding + Repo Indexing | 🔲 Not started | Mandatory for brownfield MVP; establishes safe per-run workspace model |
+| 8.5 | Workspace Onboarding + Repo Indexing | 🔄 In progress (3/6 plans) | Plans 01-03 done: entity+migration, WorkspaceOnboarding, RepoIndexer, EphemeralWorkspace, PipelineService integration |
 | 8.6 | Telegram Refactor (Deterministic Protocol) | 🔲 Not started | Commands + context-bound natural language; Telegram never chooses target |
 | 9 | Policy Engine + Execution Profiles | 🔲 Not started | Read-only / Guided / Autonomous; allowlists; deny-by-default posture |
 | 10 | Loop Engine / Ralph | 🔲 Not started | plan → execute → validate → repair → repeat with hard iteration limits |
@@ -55,6 +55,8 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 | Health endpoint uses custom shape (not Terminus) | Fixed JSON `{status, db, redis}` as documented in Phase 1 spec | 2026-03-31 |
 | Reprioritize Milestone 2 to four-plane foundation | Onboarding + deterministic channels + policy + loop + vault memory are pre-reqs for safe autonomy | 2026-04-01 |
 | Workspace isolation per run (ephemeral clones) | Prevent agent from touching host repo directly; enable rollback and explicit promotion | 2026-04-01 |
+| planId used as runId in EphemeralWorkspaceService | Provides traceability between pipeline runs and ephemeral workspace directories in volumes/runs/ | 2026-04-01 |
+| @Optional() injection for EphemeralWorkspaceService in PipelineService | Maintains backward compatibility when WorkspaceModule is not imported; fallback to old WorkspaceService path | 2026-04-01 |
 | Telegram deterministic protocol | Chat carries intent; daemon resolves context; commands for risky actions | 2026-04-01 |
 
 ---
@@ -65,7 +67,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 
 - **Phase 7**: CI coverage enforcement — `bun run test --coverage` runs but doesn't fail pipeline on threshold miss
 - **Phase 8**: `docs/SECURITY.md` — deployment checklist and master key rotation runbook not written
- - **Phase 8.5**: Workspace onboarding + repo indexing — not implemented yet (foundation for brownfield MVP)
+ - **Phase 8.5**: Plans 04-06 not yet implemented (PromotionService, REST controller, CLI init runner)
  - **Phase 8.6**: Telegram refactor — not implemented yet (deterministic protocol)
 
 ### Concerns (from codebase map)
@@ -80,7 +82,8 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 ## Session Continuity
 
 **GSD planning initialized:** 2026-04-01
-**Next action:** `/gsd:plan-phase 8.5` — Workspace Onboarding + Repo Indexing
+**Last session:** 2026-04-01 — Completed 8.5-03-PLAN.md (EphemeralWorkspaceService + PipelineService integration)
+**Next action:** 8.5-04 (PromotionService or next plan in phase 8.5)
 
 ---
 
