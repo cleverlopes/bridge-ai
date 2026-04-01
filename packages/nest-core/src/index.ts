@@ -33,3 +33,11 @@ export { PipelineService } from './module/pipeline/pipeline.service';
 export { WorkspaceService } from './module/pipeline/workspace.service';
 export { DockerModule } from './module/docker/docker.module';
 export { DockerService } from './module/docker/docker.service';
+export { MetricsModule } from './module/metrics/metrics.module';
+export {
+  ExecutionMetricsService,
+  PhaseMetricsInput,
+  AggregatedMetrics,
+} from './module/metrics/metrics.service';
+export { ObsidianModule } from './module/obsidian/obsidian.module';
+export { ObsidianSyncService } from './module/obsidian/obsidian-sync.service';

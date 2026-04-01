@@ -9,6 +9,7 @@ import { TelegramNotifierService } from '../telegram/telegram-notifier.service';
 import { WorkspaceService } from './workspace.service';
 import { HumanGateBridge } from './human-gate.bridge';
 import { DockerService } from '../docker/docker.service';
+import { ObsidianSyncService } from '../obsidian/obsidian-sync.service';
 
 const OBSIDIAN_VAULT_PATH = resolve(process.cwd(), 'volumes', 'obsidian');
 
@@ -23,6 +24,7 @@ export class PipelineService {
     private readonly notifier: TelegramNotifierService,
     private readonly workspace: WorkspaceService,
     private readonly humanGate: HumanGateBridge,
+    private readonly obsidian: ObsidianSyncService,
     @Optional() private readonly docker: DockerService | null,
   ) {}
 
@@ -50,6 +52,9 @@ export class PipelineService {
       autoMode: false,
     });
 
+    await this.obsidian.ensureVaultStructure();
+    await this.obsidian.ensureTemplates();
+
     gsd.addTransport(new ObsidianTransport({ vaultPath: OBSIDIAN_VAULT_PATH }));
 
     gsd.addTransport(
@@ -74,6 +79,15 @@ export class PipelineService {
       this.forwardEventToTelegram(event, conversationId, planId).catch((err: unknown) => {
         this.logger.warn(`Failed to forward event to Telegram: ${err instanceof Error ? err.message : err}`);
       });
+    });
+
+    gsd.onEvent(async (event: GSDEvent) => {
+      if (event.type === GSDEventType.PhaseComplete) {
+        await this.obsidian.onPhaseComplete(event as GSDPhaseCompleteEvent, planId, projectId);
+      }
+      if (event.type === GSDEventType.MilestoneComplete) {
+        await this.obsidian.onMilestoneComplete(projectId);
+      }
     });
 
     const humanGateCallbacks = conversationId

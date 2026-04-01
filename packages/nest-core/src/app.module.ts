@@ -18,6 +18,8 @@ import { PlanModule } from './module/plan/plan.module';
 import { TelegramModule } from './module/telegram/telegram.module';
 import { PipelineModule } from './module/pipeline/pipeline.module';
 import { DockerModule } from './module/docker/docker.module';
+import { MetricsModule } from './module/metrics/metrics.module';
+import { ObsidianModule } from './module/obsidian/obsidian.module';
 
 @Module({
   imports: [
@@ -56,6 +58,8 @@ import { DockerModule } from './module/docker/docker.module';
     TelegramModule,
     PipelineModule,
     DockerModule,
+    MetricsModule,
+    ObsidianModule,
   ],
 })
 export class AppModule {}

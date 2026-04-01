@@ -5,6 +5,7 @@ import { PlanModule } from '../plan/plan.module';
 import { TelegramModule } from '../telegram/telegram.module';
 import { EventsModule } from '../events/events.module';
 import { DockerModule } from '../docker/docker.module';
+import { ObsidianModule } from '../obsidian/obsidian.module';
 import { QUEUE_EXECUTION_JOBS } from '../events/events.service';
 import { PipelineService } from './pipeline.service';
 import { WorkspaceService } from './workspace.service';
@@ -19,6 +20,7 @@ import { ExecutionWorker } from './execution.worker';
     TelegramModule,
     EventsModule,
     DockerModule,
+    ObsidianModule,
   ],
   providers: [PipelineService, WorkspaceService, HumanGateBridge, ExecutionWorker],
   exports: [PipelineService, WorkspaceService],
