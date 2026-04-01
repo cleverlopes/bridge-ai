@@ -1,11 +1,20 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import simpleGit from 'simple-git';
 import type { IndexPayload, ManifestEntry, RepoInfo } from './types';
+import { WorkspaceSnapshot } from '../../persistence/entity/workspace-snapshot.entity';
 
 @Injectable()
 export class RepoIndexerService {
   private readonly logger = new Logger(RepoIndexerService.name);
+
+  constructor(
+    @InjectRepository(WorkspaceSnapshot)
+    private readonly snapshotRepo: Repository<WorkspaceSnapshot>,
+  ) {}
 
   static readonly MAX_TREE_ENTRIES = 2000;
   static readonly MAX_DEPTH = 3;
@@ -84,6 +93,49 @@ export class RepoIndexerService {
     }
 
     return payload;
+  }
+
+  /**
+   * Incremental sync: compares stored headSha with live git HEAD.
+   * Returns null if HEAD is unchanged, re-indexes and returns new IndexPayload if changed.
+   * Throws NotFoundException if no snapshot exists for the project.
+   */
+  async sync(projectId: string): Promise<IndexPayload | null> {
+    const snapshot = await this.snapshotRepo.findOne({ where: { projectId } });
+    if (!snapshot) {
+      throw new NotFoundException(`No workspace snapshot for project ${projectId}`);
+    }
+
+    const git = simpleGit(snapshot.workspacePath);
+    const currentHeadSha = (await git.revparse(['HEAD'])).trim();
+
+    if (currentHeadSha === snapshot.headSha) {
+      this.logger.log(
+        `Snapshot for project ${projectId} is up to date (HEAD=${currentHeadSha.slice(0, 8)})`,
+      );
+      return null;
+    }
+
+    this.logger.log(
+      `HEAD changed for project ${projectId}: ${snapshot.headSha.slice(0, 8)} -> ${currentHeadSha.slice(0, 8)}, re-indexing`,
+    );
+
+    const repoInfo: RepoInfo = {
+      remoteUrl: snapshot.remoteUrl,
+      remoteName: snapshot.remoteName,
+      baseBranch: snapshot.baseBranch,
+      currentBranch: snapshot.currentBranch,
+      isDirty: snapshot.isDirty,
+      headSha: currentHeadSha,
+    };
+
+    const newPayload = await this.bootstrap(snapshot.workspacePath, repoInfo);
+    snapshot.headSha = currentHeadSha;
+    snapshot.indexPayload = newPayload;
+    snapshot.indexedAt = new Date();
+    await this.snapshotRepo.save(snapshot);
+
+    return newPayload;
   }
 
   /**

@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Dirent } from 'node:fs';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { NotFoundException } from '@nestjs/common';
 import { RepoIndexerService } from '../repo-indexer.service';
 import type { RepoInfo, IndexPayload } from '../types';
+import { WorkspaceSnapshot } from '../../../persistence/entity/workspace-snapshot.entity';
 
 // Mock node:fs/promises at module level
 jest.mock('node:fs/promises', () => ({
@@ -10,6 +13,10 @@ jest.mock('node:fs/promises', () => ({
   access: jest.fn(),
   stat: jest.fn(),
 }));
+
+// Mock simple-git for sync() tests
+jest.mock('simple-git');
+import { mockGit } from '../../../__mocks__/simple-git';
 
 import * as fsPromises from 'node:fs/promises';
 
@@ -41,6 +48,11 @@ const BASE_REPO_INFO: RepoInfo = {
   headSha: 'abc1234567890abcdef1234567890abcdef12345',
 };
 
+const mockSnapshotRepo = {
+  findOne: jest.fn(),
+  save: jest.fn(),
+};
+
 describe('RepoIndexerService', () => {
   let service: RepoIndexerService;
 
@@ -48,7 +60,13 @@ describe('RepoIndexerService', () => {
     jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [RepoIndexerService],
+      providers: [
+        RepoIndexerService,
+        {
+          provide: getRepositoryToken(WorkspaceSnapshot),
+          useValue: mockSnapshotRepo,
+        },
+      ],
     }).compile();
 
     service = module.get<RepoIndexerService>(RepoIndexerService);
@@ -265,6 +283,61 @@ describe('RepoIndexerService', () => {
       expect(result.baseBranch).toBe('develop');
       expect(result.currentBranch).toBe('feature/xyz');
       expect(result.headSha).toBe('deadbeefdeadbeefdeadbeef1234567890abcdef');
+    });
+  });
+
+  describe('sync()', () => {
+    const storedSha = 'abc1234def5678901234567890123456789012';
+    const newSha = 'def5678abc1234901234567890123456789099';
+
+    const baseSnapshot = {
+      id: 'snap-uuid-1',
+      projectId: 'project-uuid-1',
+      workspacePath: '/workspace/my-repo',
+      headSha: storedSha,
+      remoteUrl: 'https://github.com/org/repo.git',
+      remoteName: 'origin',
+      baseBranch: 'main',
+      currentBranch: 'main',
+      isDirty: false,
+      indexPayload: {} as IndexPayload,
+      indexedAt: new Date(),
+    } as WorkspaceSnapshot;
+
+    it('sync returns null when headSha matches stored snapshot', async () => {
+      mockSnapshotRepo.findOne.mockResolvedValue({ ...baseSnapshot });
+      mockGit.revparse.mockResolvedValue(storedSha + '\n');
+
+      const result = await service.sync('project-uuid-1');
+
+      expect(result).toBeNull();
+      expect(mockSnapshotRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('sync calls bootstrap and updates snapshot when headSha differs', async () => {
+      const snapshot = { ...baseSnapshot };
+      mockSnapshotRepo.findOne.mockResolvedValue(snapshot);
+      mockGit.revparse.mockResolvedValue(newSha + '\n');
+      mockSnapshotRepo.save.mockResolvedValue({ ...snapshot, headSha: newSha });
+
+      // Bootstrap needs readdir to not fail
+      mockedReaddir.mockResolvedValue([]);
+
+      const result = await service.sync('project-uuid-1');
+
+      expect(result).not.toBeNull();
+      expect(result).toMatchObject({
+        headSha: newSha,
+      });
+      expect(mockSnapshotRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ headSha: newSha }),
+      );
+    });
+
+    it('sync throws NotFoundException when no snapshot found', async () => {
+      mockSnapshotRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.sync('non-existent-project')).rejects.toThrow(NotFoundException);
     });
   });
 });
