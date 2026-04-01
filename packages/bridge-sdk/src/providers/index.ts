@@ -1,15 +1,19 @@
-/**
- * Provider stubs — concrete ProviderAdapter implementations.
- *
- * Full implementations will be added in Phase 2. These stubs
- * satisfy the ProviderAdapter interface for DI configuration.
- */
+export type { ProviderAdapter } from '@bridge-ai/gsd-sdk';
+export type { ProviderConfig, ProviderType } from './types';
 
-import type { ProviderAdapter, ProviderOptions, GenerationResult } from '@bridge-ai/gsd-sdk';
+export { OpenRouterProvider } from './openrouter.provider';
+export { GeminiProvider } from './gemini.provider';
+export { OpenAIProvider } from './openai.provider';
+export { ClaudeCliProvider } from './claude-cli.provider';
+export { GeminiCliProvider } from './gemini-cli.provider';
+export { CustomCliProvider } from './custom-cli.provider';
+export type { CustomCliConfig } from './custom-cli.provider';
 
-// ─── Base stub ────────────────────────────────────────────────────────────────
+// ─── Legacy stubs (kept for backwards compat) ────────────────────────────────
 
-abstract class BaseProviderStub implements ProviderAdapter {
+import type { ProviderOptions, GenerationResult } from '@bridge-ai/gsd-sdk';
+
+abstract class BaseProviderStub {
   abstract readonly providerName: string;
 
   async generate(_prompt: string, _options: ProviderOptions): Promise<GenerationResult> {
@@ -27,13 +31,11 @@ abstract class BaseProviderStub implements ProviderAdapter {
       numTurns: 0,
       error: {
         subtype: 'not_implemented',
-        messages: [`${this.providerName} provider not yet implemented (Phase 2)`],
+        messages: [`${this.providerName} provider not yet implemented`],
       },
     };
   }
 }
-
-// ─── Provider stubs ──────────────────────────────────────────────────────────
 
 export class AnthropicProviderStub extends BaseProviderStub {
   readonly providerName = 'anthropic';
@@ -46,5 +48,3 @@ export class OpenAIProviderStub extends BaseProviderStub {
 export class AzureOpenAIProviderStub extends BaseProviderStub {
   readonly providerName = 'azure-openai';
 }
-
-export { type ProviderAdapter } from '@bridge-ai/gsd-sdk';

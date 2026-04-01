@@ -6,11 +6,17 @@ export { Pipeline } from './pipeline.js';
 export type { PipelineOptions, PipelineResult } from './pipeline.js';
 
 export {
+  OpenRouterProvider,
+  GeminiProvider,
+  OpenAIProvider,
+  ClaudeCliProvider,
+  GeminiCliProvider,
+  CustomCliProvider,
   AnthropicProviderStub,
   OpenAIProviderStub,
   AzureOpenAIProviderStub,
 } from './providers/index.js';
-export type { ProviderAdapter } from './providers/index.js';
+export type { ProviderAdapter, ProviderConfig, ProviderType, CustomCliConfig } from './providers/index.js';
 
 export { ObsidianClient } from './obsidian-client.js';
 export type { ObsidianVaultConfig, VaultNote, VaultSearchResult } from './obsidian-client.js';

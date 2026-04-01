@@ -1,0 +1,33 @@
+{
+  "name": "@bridge-ai/nest-core",
+  "version": "0.1.0",
+  "description": "Bridge AI — NestJS application core: entities, modules and app configuration",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json"
+  },
+  "dependencies": {
+    "@bridge-ai/bridge-sdk": "workspace:*",
+    "@bridge-ai/gsd-sdk": "workspace:*",
+    "@nestjs/bull": "^10.2.1",
+    "@nestjs/schedule": "^6.1.1",
+    "@nestjs/common": "^10.3.0",
+    "@nestjs/config": "^3.2.0",
+    "@nestjs/core": "^10.3.0",
+    "@nestjs/terminus": "^10.2.3",
+    "@nestjs/typeorm": "^10.0.2",
+    "bullmq": "^5.4.2",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "telegraf": "^4.16.3",
+    "typeorm": "^0.3.20"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.4.5"
+  },
+  "peerDependencies": {
+    "pg": "^8.11.5"
+  }
+}
