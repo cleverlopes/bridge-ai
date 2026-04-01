@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Project, ProjectSettings, ProjectStatus } from '../../entities/project.entity';
+import { Project, ProjectSettings, ProjectStatus } from '../../persistence/entity/project.entity';
 
 export interface CreateProjectDto {
   slug: string;

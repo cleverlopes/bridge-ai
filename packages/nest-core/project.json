@@ -1,0 +1,26 @@
+{
+  "name": "nest-core",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/nest-core/src",
+  "projectType": "library",
+  "tags": ["lib", "nest"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/nest-core",
+        "main": "packages/nest-core/src/index.ts",
+        "tsConfig": "packages/nest-core/tsconfig.lib.json",
+        "assets": []
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/nest-core/**/*.ts"]
+      }
+    }
+  }
+}

@@ -6,10 +6,10 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
-import { Secret, SecretScope } from '../../entities/secret.entity';
-import { SecretAudit } from '../../entities/secret-audit.entity';
+import { Secret, SecretScope } from '../../persistence/entity/secret.entity';
+import { SecretAudit } from '../../persistence/entity/secret-audit.entity';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_BYTES = 12;
@@ -99,8 +99,13 @@ export class KsmService implements OnModuleInit {
     scope: SecretScope,
     scopeId?: string,
   ): Promise<Secret> {
+    const where =
+      scopeId === undefined
+        ? { name, scope, scopeId: IsNull() }
+        : { name, scope, scopeId };
+
     const secret = await this.secretRepo.findOne({
-      where: { name, scope, scopeId: scopeId ?? null },
+      where,
     });
     if (!secret) {
       throw new NotFoundException(`Secret '${name}' not found`);

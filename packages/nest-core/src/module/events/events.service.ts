@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bullmq';
 import { Repository } from 'typeorm';
-import { AppEvent, EventStatus } from '../../entities/event.entity';
+import { AppEvent, EventStatus } from '../../persistence/entity/event.entity';
 
 export const QUEUE_PROJECT_EVENTS = 'project.events';
 export const QUEUE_EXECUTION_JOBS = 'execution.jobs';

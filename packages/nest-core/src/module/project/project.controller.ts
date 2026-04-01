@@ -10,7 +10,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ProjectService, CreateProjectDto, UpdateProjectDto } from './project.service';
-import { Project } from '../../entities/project.entity';
+import { Project } from '../../persistence/entity/project.entity';
 
 @Controller('projects')
 export class ProjectController {

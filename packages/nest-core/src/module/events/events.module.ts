@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
-import { AppEvent } from '../../entities/event.entity';
+import { AppEvent } from '../../persistence/entity/event.entity';
 import { EventsService } from './events.service';
 import {
   QUEUE_PROJECT_EVENTS,
