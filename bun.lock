@@ -86,6 +86,8 @@
       "name": "@bridge-ai/nest-core",
       "version": "0.1.0",
       "dependencies": {
+        "@bridge-ai/bridge-sdk": "workspace:*",
+        "@bridge-ai/gsd-sdk": "workspace:*",
         "@nestjs/bull": "^10.2.1",
         "@nestjs/common": "^10.3.0",
         "@nestjs/config": "^3.2.0",
