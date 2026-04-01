@@ -3,16 +3,18 @@
   "version": "0.1.0",
   "description": "GSD SDK — AI-agnostic pipeline engine adapted from gsd-brain/sdk",
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.cjs"
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "test": "vitest run"
   },
   "dependencies": {
