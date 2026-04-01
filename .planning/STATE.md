@@ -1,6 +1,6 @@
 # Project State: bridge-ai
 
-**Last updated:** 2026-04-01 (8.5-01 completed)
+**Last updated:** 2026-04-01 (8.5-04 completed)
 
 ---
 
@@ -17,7 +17,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 
 **Milestone:** 2 — Four-Plane Foundation
 **Phase:** 8.5 — Workspace Onboarding + Repo Indexing (in progress)
-**Plans:** 8.5-01 complete (WorkspaceModule + WorkspaceOnboardingService)
+**Plans:** 8.5-01, 8.5-02, 8.5-04 complete (WorkspaceModule, WorkspaceOnboardingService, RepoIndexerService, PromotionService)
 
 **Milestone 1 (MVP):** ✅ Complete — Phases 1–6 all committed
 **Milestone 2 progress:** 2 of 7 phases mostly done, 5 not started
@@ -36,7 +36,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 | 6 | Obsidian Vault Sync | ✅ Complete | |
 | 7 | Test Coverage + CI | ✅ Mostly done | Gap: CI doesn't enforce coverage threshold as failing gate |
 | 8 | Security Hardening | ✅ Mostly done | Gap: docs/SECURITY.md not written. Throttling IS implemented. |
-| 8.5 | Workspace Onboarding + Repo Indexing | 🔄 In Progress | Plan 01 complete: WorkspaceModule, WorkspaceOnboardingService, entity, migration |
+| 8.5 | Workspace Onboarding + Repo Indexing | 🔄 In Progress | Plans 01, 02, 04 complete: foundation, RepoIndexerService (bootstrap+sync), PromotionService |
 | 8.6 | Telegram Refactor (Deterministic Protocol) | 🔲 Not started | Commands + context-bound natural language; Telegram never chooses target |
 | 9 | Policy Engine + Execution Profiles | 🔲 Not started | Read-only / Guided / Autonomous; allowlists; deny-by-default posture |
 | 10 | Loop Engine / Ralph | 🔲 Not started | plan → execute → validate → repair → repeat with hard iteration limits |
@@ -57,6 +57,9 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 | Workspace isolation per run (ephemeral clones) | Prevent agent from touching host repo directly; enable rollback and explicit promotion | 2026-04-01 |
 | simple-git v3.33.0 for all git operations | Pure JS, no native deps, full TypeScript types — chosen over isomorphic-git (no SSH) and nodegit (C++ bindings) | 2026-04-01 |
 | One workspace_snapshots row per project (UNIQUE on projectId) | Re-running initWorkspace upserts the row; idempotent onboarding | 2026-04-01 |
+| PromotionService takes explicit hostPath (never derived) | Enforces safe workspace contract — operator must specify host target explicitly | 2026-04-01 |
+| promoteViaPatch writes to temp file then git apply --3way | Safer than streaming diff; --3way allows merge conflict resolution | 2026-04-01 |
+| promoteViaCherryPick uses temp remote (bridge-run-{runId}) | Enables cherry-pick without modifying run workspace; removed in finally block | 2026-04-01 |
 | Telegram deterministic protocol | Chat carries intent; daemon resolves context; commands for risky actions | 2026-04-01 |
 
 ---
@@ -82,9 +85,9 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 ## Session Continuity
 
 **GSD planning initialized:** 2026-04-01
-**Last session:** 2026-04-01 — Executed 8.5-01: WorkspaceModule + WorkspaceOnboardingService
-**Stopped at:** Completed 8.5-01-PLAN.md
-**Next action:** Continue Phase 8.5 plans (RepoIndexerService, EphemeralWorkspaceService, PromotionService)
+**Last session:** 2026-04-01 — Executed 8.5-04: RepoIndexerService.sync() + PromotionService
+**Stopped at:** Completed 8.5-04-PLAN.md
+**Next action:** Continue Phase 8.5 plans (8.5-03 EphemeralWorkspaceService still pending, 8.5-05, 8.5-06)
 
 ---
 

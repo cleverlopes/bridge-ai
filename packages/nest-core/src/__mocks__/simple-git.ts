@@ -12,6 +12,11 @@ export const mockGit = {
   raw: jest.fn().mockResolvedValue('origin/main\n'),
   clone: jest.fn().mockResolvedValue(undefined),
   listRemote: jest.fn().mockResolvedValue('refs/heads/main\n'),
+  diff: jest.fn().mockResolvedValue(''),
+  push: jest.fn().mockResolvedValue(undefined),
+  addRemote: jest.fn().mockResolvedValue(undefined),
+  removeRemote: jest.fn().mockResolvedValue(undefined),
+  fetch: jest.fn().mockResolvedValue(undefined),
 };
 
 const simpleGit = jest.fn().mockReturnValue(mockGit);

@@ -6,14 +6,15 @@ import { KsmModule } from '../ksm/ksm.module';
 import { WorkspaceOnboardingService } from './workspace-onboarding.service';
 import { RepoIndexerService } from './repo-indexer.service';
 import { EphemeralWorkspaceService } from './ephemeral-workspace.service';
+import { PromotionService } from './promotion.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([WorkspaceSnapshot, Project]),
     KsmModule,
   ],
-  providers: [WorkspaceOnboardingService, RepoIndexerService, EphemeralWorkspaceService],
+  providers: [WorkspaceOnboardingService, RepoIndexerService, EphemeralWorkspaceService, PromotionService],
   controllers: [],
-  exports: [WorkspaceOnboardingService, RepoIndexerService, EphemeralWorkspaceService],
+  exports: [WorkspaceOnboardingService, RepoIndexerService, EphemeralWorkspaceService, PromotionService],
 })
 export class WorkspaceModule {}
