@@ -6,6 +6,7 @@ import { WorkspaceOnboardingService } from '../workspace-onboarding.service';
 import { WorkspaceSnapshot } from '../../../persistence/entity/workspace-snapshot.entity';
 import { Project } from '../../../persistence/entity/project.entity';
 import { KsmService } from '../../ksm/ksm.service';
+import { RepoIndexerService } from '../repo-indexer.service';
 import { IndexPayload, RepoInfo } from '../types';
 
 // Mock simple-git
@@ -42,6 +43,12 @@ const makeKsmService = (): jest.Mocked<KsmService> =>
     getSecret: jest.fn(),
   }) as unknown as jest.Mocked<KsmService>;
 
+const makeRepoIndexerService = (): jest.Mocked<RepoIndexerService> =>
+  ({
+    bootstrap: jest.fn().mockResolvedValue({}),
+    sync: jest.fn().mockResolvedValue(null),
+  }) as unknown as jest.Mocked<RepoIndexerService>;
+
 const mockRepoInfo: RepoInfo = {
   remoteUrl: 'https://github.com/test/repo.git',
   remoteName: 'origin',
@@ -70,11 +77,13 @@ describe('WorkspaceOnboardingService', () => {
   let snapshotRepo: jest.Mocked<Repository<WorkspaceSnapshot>>;
   let projectRepo: jest.Mocked<Repository<Project>>;
   let ksmService: jest.Mocked<KsmService>;
+  let repoIndexer: jest.Mocked<RepoIndexerService>;
 
   beforeEach(async () => {
     snapshotRepo = makeSnapshotRepo();
     projectRepo = makeProjectRepo();
     ksmService = makeKsmService();
+    repoIndexer = makeRepoIndexerService();
 
     // Reset mockGit before each test
     jest.clearAllMocks();
@@ -95,6 +104,7 @@ describe('WorkspaceOnboardingService', () => {
         { provide: getRepositoryToken(WorkspaceSnapshot), useValue: snapshotRepo },
         { provide: getRepositoryToken(Project), useValue: projectRepo },
         { provide: KsmService, useValue: ksmService },
+        { provide: RepoIndexerService, useValue: repoIndexer },
       ],
     }).compile();
 
