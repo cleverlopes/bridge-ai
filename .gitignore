@@ -13,3 +13,4 @@ volumes/obsidian/
 
 coverage/
 _deprecated*
+.claude/worktrees/
