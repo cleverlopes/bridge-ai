@@ -6,7 +6,9 @@
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.lib.json"
+    "build": "tsc -p tsconfig.lib.json",
+    "test": "jest",
+    "test:cov": "jest --coverage"
   },
   "dependencies": {
     "@nestjs/bull": "^10.2.1",

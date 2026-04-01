@@ -1,18 +1,18 @@
 {
-  "name": "nest-core",
+  "name": "bridge-sdk",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/nest-core/src",
+  "sourceRoot": "packages/bridge-sdk/src",
   "projectType": "library",
-  "tags": ["lib", "nest"],
+  "tags": ["lib", "sdk"],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
-      "options": { "command": "bun run build", "cwd": "packages/nest-core" }
+      "options": { "command": "bun run build", "cwd": "packages/bridge-sdk" }
     },
     "test": {
       "executor": "nx:run-commands",
       "outputs": ["{projectRoot}/coverage"],
-      "options": { "command": "bun run test:cov", "cwd": "packages/nest-core" }
+      "options": { "command": "bun run test --coverage", "cwd": "packages/bridge-sdk" }
     }
   }
 }

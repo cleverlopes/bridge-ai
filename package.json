@@ -15,7 +15,10 @@
     "migration:run": "bunx nx run api:typeorm:migration:run",
     "migration:revert": "bunx nx run api:typeorm:migration:revert",
     "build:all": "bunx nx run-many --target=build --all",
-    "test:all": "bunx nx run-many --target=test --all",
+    "test:all": "bunx nx run-many --target=test --all --parallel=4",
+    "test:gsd-sdk": "bun run test --coverage",
+    "test:bridge-sdk": "bun run test --coverage",
+    "test:nest-core": "bun run test:cov",
     "lint:all": "bunx nx run-many --target=lint --all"
   },
   "dependencies": {
@@ -29,6 +32,7 @@
     "@nestjs/terminus": "^10.2.3",
     "@nestjs/typeorm": "^10.0.2",
     "bullmq": "^5.4.2",
+    "dockerode": "^4.0.10",
     "pg": "^8.11.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
@@ -37,14 +41,24 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@jest/globals": "^30.3.0",
+    "@nestjs/testing": "^11.1.17",
     "@nx/js": "^22.3.2",
     "@nx/node": "^22.3.2",
     "@nx/webpack": "22.6.3",
+    "@types/dockerode": "^4.0.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.0.0",
     "@types/pg": "^8.11.5",
+    "@types/supertest": "^7.2.0",
     "@types/ws": "^8.5.12",
+    "@vitest/coverage-v8": "^4.1.2",
+    "jest": "^30.3.0",
     "nx": "^22.3.2",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.6",
     "typescript": "^5.4.5",
+    "vitest": "^4.1.2",
     "webpack": "5.105.4"
   }
 }

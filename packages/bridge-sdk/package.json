@@ -12,13 +12,16 @@
     }
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "test": "vitest run --coverage"
   },
   "dependencies": {
     "@bridge-ai/gsd-sdk": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "typescript": "^5.4.5"
+    "@vitest/coverage-v8": "*",
+    "typescript": "^5.4.5",
+    "vitest": "*"
   }
 }
