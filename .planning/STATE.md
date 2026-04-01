@@ -1,6 +1,6 @@
 # Project State: bridge-ai
 
-**Last updated:** 2026-04-01 (8.5-04 completed)
+**Last updated:** 2026-04-01 (8.5-05 completed)
 
 ---
 
@@ -17,7 +17,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 
 **Milestone:** 2 — Four-Plane Foundation
 **Phase:** 8.5 — Workspace Onboarding + Repo Indexing (in progress)
-**Plans:** 8.5-01, 8.5-02, 8.5-04 complete (WorkspaceModule, WorkspaceOnboardingService, RepoIndexerService, PromotionService)
+**Plans:** 8.5-01, 8.5-02, 8.5-03, 8.5-04, 8.5-05 complete (WorkspaceModule, WorkspaceOnboardingService, RepoIndexerService, EphemeralWorkspaceService, PromotionService, PipelineService integration)
 
 **Milestone 1 (MVP):** ✅ Complete — Phases 1–6 all committed
 **Milestone 2 progress:** 2 of 7 phases mostly done, 5 not started
@@ -36,7 +36,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 | 6 | Obsidian Vault Sync | ✅ Complete | |
 | 7 | Test Coverage + CI | ✅ Mostly done | Gap: CI doesn't enforce coverage threshold as failing gate |
 | 8 | Security Hardening | ✅ Mostly done | Gap: docs/SECURITY.md not written. Throttling IS implemented. |
-| 8.5 | Workspace Onboarding + Repo Indexing | 🔄 In Progress | Plans 01, 02, 04 complete: foundation, RepoIndexerService (bootstrap+sync), PromotionService |
+| 8.5 | Workspace Onboarding + Repo Indexing | 🔄 In Progress | Plans 01–05 complete: foundation, RepoIndexerService (bootstrap+sync), EphemeralWorkspaceService, PromotionService, PipelineService integration |
 | 8.6 | Telegram Refactor (Deterministic Protocol) | 🔲 Not started | Commands + context-bound natural language; Telegram never chooses target |
 | 9 | Policy Engine + Execution Profiles | 🔲 Not started | Read-only / Guided / Autonomous; allowlists; deny-by-default posture |
 | 10 | Loop Engine / Ralph | 🔲 Not started | plan → execute → validate → repair → repeat with hard iteration limits |
@@ -70,7 +70,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 
 - **Phase 7**: CI coverage enforcement — `bun run test --coverage` runs but doesn't fail pipeline on threshold miss
 - **Phase 8**: `docs/SECURITY.md` — deployment checklist and master key rotation runbook not written
- - **Phase 8.5**: Plan 01 complete (WorkspaceModule foundation). Remaining plans: RepoIndexerService, EphemeralWorkspaceService, PromotionService, REST controller
+ - **Phase 8.5**: Plans 01–05 complete. Remaining: 8.5-06 (workspace controller + REST endpoint + InitRunner integration)
  - **Phase 8.6**: Telegram refactor — not implemented yet (deterministic protocol)
 
 ### Concerns (from codebase map)
@@ -85,9 +85,9 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 ## Session Continuity
 
 **GSD planning initialized:** 2026-04-01
-**Last session:** 2026-04-01 — Executed 8.5-04: RepoIndexerService.sync() + PromotionService
-**Stopped at:** Completed 8.5-04-PLAN.md
-**Next action:** Continue Phase 8.5 plans (8.5-03 EphemeralWorkspaceService still pending, 8.5-05, 8.5-06)
+**Last session:** 2026-04-01 — Executed 8.5-05: verified EphemeralWorkspaceService + PromotionService + RepoIndexerService.sync + PipelineService integration; fixed workspace-onboarding spec
+**Stopped at:** Completed 8.5-05-PLAN.md
+**Next action:** Continue Phase 8.5 with 8.5-06 (workspace controller + REST endpoint)
 
 ---
 
