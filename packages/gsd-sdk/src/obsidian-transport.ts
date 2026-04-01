@@ -5,8 +5,8 @@
  * in an Obsidian vault directory. Each session gets its own daily log file.
  */
 
-import { appendFileSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { appendFileSync, mkdirSync, existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { GSDEventType, type GSDEvent, type TransportHandler } from './types.js';
 
 // ─── ObsidianTransport ───────────────────────────────────────────────────────
@@ -16,28 +16,48 @@ export interface ObsidianTransportOptions {
   vaultPath: string;
   /** Subdirectory within the vault for pipeline logs. Default: 'bridge-ai-logs'. */
   logFolder?: string;
+  /**
+   * Optional project slug. When provided, logs are written under:
+   * `projects/<slug>/phases/<NN-...>/EXECUTION-LOG.md` (best-effort).
+   */
+  projectSlug?: string;
 }
 
 export class ObsidianTransport implements TransportHandler {
   private readonly vaultPath: string;
   private readonly logFolder: string;
-  private readonly logFilePath: string;
-  private initialized = false;
+  private readonly projectSlug?: string;
+  private initializedFiles = new Set<string>();
+  private currentPhaseSlug: string | null = null;
 
   constructor(options: ObsidianTransportOptions) {
     this.vaultPath = options.vaultPath;
     this.logFolder = options.logFolder ?? 'bridge-ai-logs';
-
-    const dateStr = new Date().toISOString().slice(0, 10);
-    this.logFilePath = join(this.vaultPath, this.logFolder, `${dateStr}-pipeline.md`);
+    this.projectSlug = options.projectSlug;
   }
 
   onEvent(event: GSDEvent): void {
     try {
-      this.ensureLogFile();
+      // Update phase context when we see phase lifecycle events.
+      if (event.type === GSDEventType.PhaseStart || event.type === GSDEventType.PhaseComplete) {
+        const phaseNumber = (event as unknown as { phaseNumber?: string }).phaseNumber ?? '';
+        const phaseName = (event as unknown as { phaseName?: string }).phaseName ?? '';
+        if (phaseNumber) {
+          const n = String(phaseNumber).padStart(2, '0');
+          const nameSlug = String(phaseName || 'phase')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+          this.currentPhaseSlug = `${n}-${nameSlug || 'phase'}`;
+        }
+      }
+
+      const logFilePath = this.resolveLogFilePath();
+      this.ensureLogFile(logFilePath);
+
       const line = this.formatEvent(event);
       if (line) {
-        appendFileSync(this.logFilePath, line + '\n');
+        appendFileSync(logFilePath, line + '\n');
       }
     } catch {
       // Must not throw per TransportHandler contract
@@ -48,17 +68,31 @@ export class ObsidianTransport implements TransportHandler {
     // File handles are closed after each appendFileSync — nothing to clean up
   }
 
-  private ensureLogFile(): void {
-    if (this.initialized) return;
-    const dir = join(this.vaultPath, this.logFolder);
-    mkdirSync(dir, { recursive: true });
-    if (!this.initialized) {
-      appendFileSync(
-        this.logFilePath,
-        `# Bridge AI Pipeline Log — ${new Date().toISOString().slice(0, 10)}\n\n`,
-      );
-      this.initialized = true;
+  private resolveLogFilePath(): string {
+    // Preferred contract: projects/<slug>/phases/<phase>/EXECUTION-LOG.md
+    if (this.projectSlug && this.currentPhaseSlug) {
+      return join(this.vaultPath, 'projects', this.projectSlug, 'phases', this.currentPhaseSlug, 'EXECUTION-LOG.md');
     }
+
+    // Pre-phase fallback: projectSlug known but PhaseStart not yet received — write to setup log
+    if (this.projectSlug) {
+      return join(this.vaultPath, 'projects', this.projectSlug, 'phases', 'setup', 'EXECUTION-LOG.md');
+    }
+
+    // Unknown project: write to a named setup stub rather than an opaque date-based path
+    return join(this.vaultPath, this.logFolder, 'phases', 'setup', 'EXECUTION-LOG.md');
+  }
+
+  private ensureLogFile(logFilePath: string): void {
+    if (this.initializedFiles.has(logFilePath)) return;
+    const dir = dirname(logFilePath);
+    mkdirSync(dir, { recursive: true });
+
+    // Only write header if the file doesn't exist yet.
+    if (!existsSync(logFilePath)) {
+      appendFileSync(logFilePath, `# Bridge AI Execution Log\n\n`);
+    }
+    this.initializedFiles.add(logFilePath);
   }
 
   private formatEvent(event: GSDEvent): string | null {

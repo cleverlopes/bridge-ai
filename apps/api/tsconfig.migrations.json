@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "types": ["node"]
+  },
+  "ts-node": {
+    "transpileOnly": true,
+    "files": true
+  },
+  "include": [
+    "apps/api/**/*.ts",
+    "packages/nest-core/src/**/*.ts"
+  ],
+  "exclude": [
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "node_modules"
+  ]
+}
+

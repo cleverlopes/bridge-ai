@@ -470,6 +470,9 @@ export interface GSDPhaseCompleteEvent extends GSDEventBase {
   totalCostUsd: number;
   totalDurationMs: number;
   stepsCompleted: number;
+  tokensIn?: number;
+  tokensOut?: number;
+  modelUsed?: string;
 }
 
 // ─── S04: Plan index & wave event types ─────────────────────────────────────

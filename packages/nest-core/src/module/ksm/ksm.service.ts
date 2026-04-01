@@ -6,8 +6,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
-import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
+import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'crypto';
 import { Secret, SecretScope } from '../../persistence/entity/secret.entity';
 import { SecretAudit } from '../../persistence/entity/secret-audit.entity';
 
@@ -32,18 +33,27 @@ export class KsmService implements OnModuleInit {
     private readonly secretRepo: Repository<Secret>,
     @InjectRepository(SecretAudit)
     private readonly auditRepo: Repository<SecretAudit>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
 
   onModuleInit() {
-    const keyB64 = process.env['BRIDGE_MASTER_KEY'];
-    if (!keyB64) {
+    const keyRaw = process.env['BRIDGE_MASTER_KEY'];
+    if (!keyRaw) {
       throw new Error('BRIDGE_MASTER_KEY environment variable is required');
     }
-    const keyBuf = Buffer.from(keyB64, 'base64');
-    if (keyBuf.length !== 32) {
-      throw new Error('BRIDGE_MASTER_KEY must be exactly 32 bytes (base64-encoded)');
+
+    const decoded = Buffer.from(keyRaw, 'base64');
+    if (decoded.length === 32) {
+      this.masterKey = decoded;
+      this.logger.log('KSM initialized (base64 key)');
+      return;
     }
-    this.masterKey = keyBuf;
+
+    // Dev-friendly fallback: accept any passphrase and derive a 32-byte key.
+    // This avoids hard-failing when BRIDGE_MASTER_KEY isn't base64-encoded.
+    this.masterKey = createHash('sha256').update(keyRaw, 'utf8').digest();
+    this.logger.warn('KSM initialized with derived key (set BRIDGE_MASTER_KEY to base64-encoded 32 bytes for production)');
     this.logger.log('KSM initialized');
   }
 
@@ -87,11 +97,20 @@ export class KsmService implements OnModuleInit {
   ): Promise<void> {
     const secret = await this.findSecret(name, scope, scopeId);
     const encryptedValue = this.encrypt(newValue);
-    await this.secretRepo.update(secret.id, {
-      encryptedValue,
-      keyVersion: secret.keyVersion + 1,
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.update(Secret, secret.id, {
+        encryptedValue,
+        keyVersion: secret.keyVersion + 1,
+      });
+      const audit = manager.create(SecretAudit, {
+        secretId: secret.id,
+        action: 'rotate' as SecretAudit['action'],
+        callerModule: 'KsmService',
+        callerProjectId: scopeId ?? null,
+      });
+      await manager.save(SecretAudit, audit);
     });
-    await this.writeAudit(secret.id, 'rotate', 'KsmService', scopeId);
   }
 
   private async findSecret(

@@ -20,8 +20,6 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@bridge-ai/gsd-sdk": ["packages/gsd-sdk/src/index.ts"],
-      "@bridge-ai/bridge-sdk": ["packages/bridge-sdk/src/index.ts"],
       "@bridge-ai/nest-core": ["packages/nest-core/src/index.ts"]
     }
   },

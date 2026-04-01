@@ -1,6 +1,10 @@
 // Manual Jest mock for @bridge-ai/gsd-sdk
 // Used by nest-core tests to avoid ESM-only imports (import.meta.url)
 
+// This file is used in test contexts, but is included in the library TS build.
+// Declare `jest` to keep the build type-safe without requiring Jest globals.
+declare const jest: { fn: (...args: unknown[]) => any };
+
 export interface ProviderOptions {
   model?: string;
   maxTurns?: number;

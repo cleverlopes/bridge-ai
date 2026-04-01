@@ -54,29 +54,25 @@
     "typeorm": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bun run typeorm",
-        "cwd": "apps/api"
+        "command": "ts-node --transpile-only -r tsconfig-paths/register --project apps/api/tsconfig.migrations.json ./node_modules/typeorm/cli.js"
       }
     },
     "typeorm:migration:generate": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bun run typeorm migration:generate",
-        "cwd": "apps/api"
+        "command": "ts-node --transpile-only -r tsconfig-paths/register --project apps/api/tsconfig.migrations.json ./node_modules/typeorm/cli.js migration:generate -d packages/nest-core/src/persistence/data-source.ts"
       }
     },
     "typeorm:migration:run": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bun run typeorm migration:run -d src/data-source.ts",
-        "cwd": "apps/api"
+        "command": "ts-node --transpile-only -r tsconfig-paths/register --project apps/api/tsconfig.migrations.json ./node_modules/typeorm/cli.js migration:run -d packages/nest-core/src/persistence/data-source.ts"
       }
     },
     "typeorm:migration:revert": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bun run typeorm migration:revert -d src/data-source.ts",
-        "cwd": "apps/api"
+        "command": "ts-node --transpile-only -r tsconfig-paths/register --project apps/api/tsconfig.migrations.json ./node_modules/typeorm/cli.js migration:revert -d packages/nest-core/src/persistence/data-source.ts"
       }
     }
   }

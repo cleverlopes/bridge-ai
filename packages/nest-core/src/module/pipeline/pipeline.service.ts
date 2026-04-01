@@ -55,7 +55,13 @@ export class PipelineService {
     await this.obsidian.ensureVaultStructure();
     await this.obsidian.ensureTemplates();
 
-    gsd.addTransport(new ObsidianTransport({ vaultPath: OBSIDIAN_VAULT_PATH }));
+    const projectSlug = await this.obsidian.getProjectSlug(projectId);
+    gsd.addTransport(
+      new ObsidianTransport({
+        vaultPath: OBSIDIAN_VAULT_PATH,
+        ...(projectSlug ? { projectSlug } : {}),
+      }),
+    );
 
     gsd.addTransport(
       new PostgresTransport({

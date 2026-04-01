@@ -161,9 +161,9 @@ export class ExecutionMetricsService {
       completedAt: new Date(),
       durationMs: event.totalDurationMs,
       costUsd: event.totalCostUsd,
-      tokensIn: 0,
-      tokensOut: 0,
-      modelUsed: 'unknown',
+      tokensIn: event.tokensIn ?? 0,
+      tokensOut: event.tokensOut ?? 0,
+      modelUsed: event.modelUsed ?? 'unknown',
       iterationCount: event.stepsCompleted,
       success: event.success,
     });

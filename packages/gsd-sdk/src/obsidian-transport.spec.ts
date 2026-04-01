@@ -6,6 +6,7 @@ import { GSDEventType } from './types.js';
 vi.mock('node:fs', () => ({
   appendFileSync: vi.fn(),
   mkdirSync: vi.fn(),
+  existsSync: vi.fn(() => false),
 }));
 
 // Import after mocking
@@ -110,6 +111,43 @@ describe('ObsidianTransport', () => {
       expect.stringContaining('custom-logs'),
       expect.anything(),
     );
+  });
+
+  it('writes to phases/setup/EXECUTION-LOG.md when projectSlug provided but no phase yet', () => {
+    const transport = new ObsidianTransport({ vaultPath: '/vault', projectSlug: 'my-project' });
+    transport.onEvent(makeSessionInitEvent());
+
+    const dirs = mkdirSyncMock.mock.calls.map(c => c[0] as string);
+    expect(dirs.some(d => d.includes('my-project') && d.includes('setup'))).toBe(true);
+    const writes = appendFileSyncMock.mock.calls.map(c => c[0] as string);
+    expect(writes.some(p => p.includes('my-project') && p.includes('setup') && p.endsWith('EXECUTION-LOG.md'))).toBe(true);
+  });
+
+  it('writes to logFolder/phases/setup/EXECUTION-LOG.md when neither projectSlug nor phase known', () => {
+    const transport = new ObsidianTransport({ vaultPath: '/vault' });
+    transport.onEvent(makeSessionInitEvent());
+
+    const writes = appendFileSyncMock.mock.calls.map(c => c[0] as string);
+    expect(writes.some(p => p.includes('setup') && p.endsWith('EXECUTION-LOG.md'))).toBe(true);
+    expect(writes.every(p => !p.match(/\d{4}-\d{2}-\d{2}-pipeline/))).toBe(true);
+  });
+
+  it('switches from setup log to phase log once PhaseStart fires', () => {
+    const transport = new ObsidianTransport({ vaultPath: '/vault', projectSlug: 'my-project' });
+    transport.onEvent(makeSessionInitEvent());
+
+    const phaseStartEvent = {
+      type: GSDEventType.PhaseStart,
+      timestamp: '2026-03-31T10:01:00.000Z',
+      sessionId: 'session-abc',
+      phaseNumber: '3',
+      phaseName: 'Auth',
+    } as GSDEvent;
+    transport.onEvent(phaseStartEvent);
+    transport.onEvent(makeSessionCompleteEvent());
+
+    const writes = appendFileSyncMock.mock.calls.map(c => c[0] as string);
+    expect(writes.some(p => p.includes('03-auth'))).toBe(true);
   });
 
   it('only initializes the log file once across multiple events', () => {

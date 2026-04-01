@@ -39,6 +39,12 @@ export class DockerService implements OnModuleInit {
       HostConfig: {
         Binds: [`${workspacePath}:/workspace`],
         NetworkMode: NETWORK_NAME,
+        ReadonlyRootfs: true,
+        CapDrop: ['ALL'],
+        SecurityOpt: ['no-new-privileges'],
+        Tmpfs: {
+          '/tmp': 'rw,noexec,nosuid,size=256m',
+        },
       },
       Labels: {
         'bridge-ai.project': projectId,
@@ -168,6 +174,7 @@ export class DockerService implements OnModuleInit {
         await this.docker.createNetwork({
           Name: NETWORK_NAME,
           Driver: 'bridge',
+          Internal: true,
           Labels: { 'bridge-ai.managed': 'true' },
         });
         this.logger.log(`Created Docker network: ${NETWORK_NAME}`);

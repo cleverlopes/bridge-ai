@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { mkdir, writeFile, readFile, copyFile, rename, access } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, copyFile, rename, access, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import type { GSDPhaseCompleteEvent } from '@bridge-ai/gsd-sdk';
 import { ExecutionMetric } from '../../persistence/entity/execution-metric.entity';
@@ -55,6 +55,11 @@ export class ObsidianSyncService {
     private readonly metricRepo: Repository<ExecutionMetric>,
     private readonly metricsService: ExecutionMetricsService,
   ) {}
+
+  async getProjectSlug(projectId: string): Promise<string | null> {
+    const project = await this.projectRepo.findOne({ where: { id: projectId } });
+    return project?.slug ?? null;
+  }
 
   async ensureVaultStructure(): Promise<void> {
     try {
@@ -142,6 +147,22 @@ export class ObsidianSyncService {
         const contextPath = join(phaseDir, 'CONTEXT.md');
         if (!(await fileExists(contextPath))) {
           await writeFile(contextPath, this.buildPhaseContext(phase, project), 'utf8');
+        }
+
+        const wsPhaseDir = join(workspaceDir, '.planning', 'phases', phaseSlug);
+        const fixedArtifacts = ['PLAN.md', 'VERIFICATION.md', 'SUMMARY.md'];
+        for (const artifact of fixedArtifacts) {
+          await safeCopyFile(join(wsPhaseDir, artifact), join(phaseDir, artifact));
+        }
+        try {
+          const entries = await readdir(wsPhaseDir).catch(() => [] as string[]);
+          for (const entry of entries) {
+            if (/^PLAN[-_]/.test(entry) && entry.endsWith('.md')) {
+              await safeCopyFile(join(wsPhaseDir, entry), join(phaseDir, entry));
+            }
+          }
+        } catch {
+          // Best-effort: directory may not exist yet
         }
       }
     } catch (err) {

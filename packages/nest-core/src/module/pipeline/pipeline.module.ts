@@ -6,15 +6,16 @@ import { TelegramModule } from '../telegram/telegram.module';
 import { EventsModule } from '../events/events.module';
 import { DockerModule } from '../docker/docker.module';
 import { ObsidianModule } from '../obsidian/obsidian.module';
-import { QUEUE_EXECUTION_JOBS } from '../events/events.service';
+import { QUEUE_EXECUTION_JOBS, QUEUE_WORKFLOW_EVENTS } from '../events/events.service';
 import { PipelineService } from './pipeline.service';
 import { WorkspaceService } from './workspace.service';
 import { HumanGateBridge } from './human-gate.bridge';
 import { ExecutionWorker } from './execution.worker';
+import { WorkflowEventsWorker } from './workflow-events.worker';
 
 @Module({
   imports: [
-    BullModule.registerQueue({ name: QUEUE_EXECUTION_JOBS }),
+    BullModule.registerQueue({ name: QUEUE_EXECUTION_JOBS }, { name: QUEUE_WORKFLOW_EVENTS }),
     BrainModule,
     PlanModule,
     TelegramModule,
@@ -22,7 +23,7 @@ import { ExecutionWorker } from './execution.worker';
     DockerModule,
     ObsidianModule,
   ],
-  providers: [PipelineService, WorkspaceService, HumanGateBridge, ExecutionWorker],
+  providers: [PipelineService, WorkspaceService, HumanGateBridge, ExecutionWorker, WorkflowEventsWorker],
   exports: [PipelineService, WorkspaceService],
 })
 export class PipelineModule {}

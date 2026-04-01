@@ -37,7 +37,9 @@ import type { ProviderAdapter, ProviderOptions, GenerationResult } from '@bridge
 
 const makeProvider = (): ProviderAdapter => ({
   providerName: 'test-provider',
-  generate: vi.fn<[string, ProviderOptions], Promise<GenerationResult>>().mockResolvedValue({
+  generate: vi
+    .fn<(prompt: string, options: ProviderOptions) => Promise<GenerationResult>>()
+    .mockResolvedValue({
     success: true,
     sessionId: 'session-1',
     totalCostUsd: 0,

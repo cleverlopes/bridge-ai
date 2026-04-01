@@ -1,7 +1,8 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../dist/packages/nest-core",
+    "rootDir": "src",
+    "outDir": "dist",
     "module": "CommonJS",
     "moduleResolution": "node",
     "declaration": true,

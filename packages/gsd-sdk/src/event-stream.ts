@@ -348,6 +348,7 @@ export class GSDEventStream extends EventEmitter {
 
       case 'compact_boundary': {
         const compactMsg = msg as SDKCompactBoundaryMessage;
+        if (!compactMsg.compact_metadata) return null;
         return {
           ...base,
           type: GSDEventType.CompactBoundary,
@@ -369,6 +370,7 @@ export class GSDEventStream extends EventEmitter {
 
       case 'task_progress': {
         const progressMsg = msg as SDKTaskProgressMessage;
+        if (!progressMsg.usage) return null;
         return {
           ...base,
           type: GSDEventType.TaskProgress,

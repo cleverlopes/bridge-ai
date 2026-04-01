@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import type { DataSource, EntityManager } from 'typeorm';
 import { Repository } from 'typeorm';
 import { KsmService } from './ksm.service';
 import { Secret, SecretScope } from '../../persistence/entity/secret.entity';
@@ -24,17 +25,32 @@ const makeAuditRepo = (): jest.Mocked<Repository<SecretAudit>> =>
     update: jest.fn(),
   }) as unknown as jest.Mocked<Repository<SecretAudit>>;
 
+const makeDataSource = (): jest.Mocked<DataSource> => {
+  const manager: Partial<EntityManager> = {
+    update: jest.fn().mockResolvedValue({ affected: 1, raw: [], generatedMaps: [] }),
+    create: jest.fn().mockImplementation((_entity, data) => ({ ...data })),
+    save: jest.fn().mockResolvedValue({}),
+  };
+  return {
+    transaction: jest.fn().mockImplementation(async (cb: (em: EntityManager) => Promise<void>) => {
+      await cb(manager as EntityManager);
+    }),
+  } as unknown as jest.Mocked<DataSource>;
+};
+
 describe('KsmService', () => {
   let service: KsmService;
   let secretRepo: jest.Mocked<Repository<Secret>>;
   let auditRepo: jest.Mocked<Repository<SecretAudit>>;
+  let dataSource: jest.Mocked<DataSource>;
   const originalKey = process.env['BRIDGE_MASTER_KEY'];
 
   beforeEach(() => {
     process.env['BRIDGE_MASTER_KEY'] = TEST_MASTER_KEY;
     secretRepo = makeSecretRepo();
     auditRepo = makeAuditRepo();
-    service = new KsmService(secretRepo, auditRepo);
+    dataSource = makeDataSource();
+    service = new KsmService(secretRepo, auditRepo, dataSource);
     service.onModuleInit();
   });
 
@@ -49,13 +65,13 @@ describe('KsmService', () => {
   describe('onModuleInit()', () => {
     it('throws if BRIDGE_MASTER_KEY is not set', () => {
       delete process.env['BRIDGE_MASTER_KEY'];
-      const svc = new KsmService(secretRepo, auditRepo);
+      const svc = new KsmService(secretRepo, auditRepo, dataSource);
       expect(() => svc.onModuleInit()).toThrow('BRIDGE_MASTER_KEY environment variable is required');
     });
 
     it('initializes with a valid base64-32-byte key', () => {
       process.env['BRIDGE_MASTER_KEY'] = TEST_MASTER_KEY;
-      const svc = new KsmService(secretRepo, auditRepo);
+      const svc = new KsmService(secretRepo, auditRepo, dataSource);
       expect(() => svc.onModuleInit()).not.toThrow();
     });
   });
@@ -162,10 +178,8 @@ describe('KsmService', () => {
   });
 
   describe('rotateSecret()', () => {
-    it('changes the encrypted value on rotate', async () => {
-      const originalPlaintext = 'original-value';
+    it('uses a transaction to atomically update the secret', async () => {
       let storedEncrypted = '';
-
       secretRepo.create.mockImplementation((data) => {
         storedEncrypted = (data as Partial<Secret>).encryptedValue ?? '';
         return { ...data, id: 'secret-1', keyVersion: 1 } as Secret;
@@ -173,9 +187,8 @@ describe('KsmService', () => {
       secretRepo.save.mockImplementation(async (entity) => entity as Secret);
       auditRepo.create.mockReturnValue({} as SecretAudit);
       auditRepo.save.mockResolvedValue({} as SecretAudit);
-      secretRepo.update.mockResolvedValue({ affected: 1, raw: [], generatedMaps: [] });
 
-      await service.createSecret('my-key', originalPlaintext, 'global' as SecretScope);
+      await service.createSecret('my-key', 'original-value', 'global' as SecretScope);
 
       secretRepo.findOne.mockResolvedValue({
         id: 'secret-1',
@@ -185,28 +198,50 @@ describe('KsmService', () => {
 
       await service.rotateSecret('my-key', 'new-value', 'global' as SecretScope);
 
-      const updateCall = secretRepo.update.mock.calls[0] as [string, Partial<Secret>];
-      expect(updateCall[1].encryptedValue).not.toBe(storedEncrypted);
-      expect(updateCall[1].encryptedValue).not.toBe(originalPlaintext);
+      expect(dataSource.transaction).toHaveBeenCalledTimes(1);
     });
 
-    it('increments keyVersion on rotate', async () => {
-      secretRepo.findOne.mockResolvedValue({
-        id: 'secret-1',
-        encryptedValue: JSON.stringify({ iv: Buffer.alloc(12).toString('base64'), tag: Buffer.alloc(16).toString('base64'), ciphertext: '', version: 1 }),
-        keyVersion: 3,
-      } as Secret);
-      secretRepo.update.mockResolvedValue({ affected: 1, raw: [], generatedMaps: [] });
+    it('changes the encrypted value on rotate', async () => {
+      let storedEncrypted = '';
+      secretRepo.create.mockImplementation((data) => {
+        storedEncrypted = (data as Partial<Secret>).encryptedValue ?? '';
+        return { ...data, id: 'secret-1', keyVersion: 1 } as Secret;
+      });
+      secretRepo.save.mockImplementation(async (entity) => entity as Secret);
       auditRepo.create.mockReturnValue({} as SecretAudit);
       auditRepo.save.mockResolvedValue({} as SecretAudit);
 
-      // We need to spy on update to check the increment
-      // First set up a valid encrypted value to avoid decrypt errors
-      let storedEncrypted = '';
-      const tempService = new KsmService(secretRepo, auditRepo);
-      tempService.onModuleInit();
+      await service.createSecret('my-key', 'original-value', 'global' as SecretScope);
 
-      // Use createSecret to generate valid encrypted data
+      secretRepo.findOne.mockResolvedValue({
+        id: 'secret-1',
+        encryptedValue: storedEncrypted,
+        keyVersion: 1,
+      } as Secret);
+
+      let capturedUpdateData: Partial<Secret> = {};
+      (dataSource.transaction as jest.Mock).mockImplementationOnce(
+        async (cb: (em: EntityManager) => Promise<void>) => {
+          const mockManager = {
+            update: jest.fn().mockImplementation((_entity: unknown, _id: unknown, data: Partial<Secret>) => {
+              capturedUpdateData = data;
+              return Promise.resolve({ affected: 1 });
+            }),
+            create: jest.fn().mockImplementation((_entity: unknown, data: unknown) => ({ ...data as object })),
+            save: jest.fn().mockResolvedValue({}),
+          } as unknown as EntityManager;
+          await cb(mockManager);
+        },
+      );
+
+      await service.rotateSecret('my-key', 'new-value', 'global' as SecretScope);
+
+      expect(capturedUpdateData.encryptedValue).not.toBe(storedEncrypted);
+      expect(capturedUpdateData.encryptedValue).not.toBe('new-value');
+    });
+
+    it('increments keyVersion inside the transaction', async () => {
+      let storedEncrypted = '';
       const tempRepo = makeSecretRepo();
       tempRepo.create.mockImplementation((data) => {
         storedEncrypted = (data as Partial<Secret>).encryptedValue ?? '';
@@ -216,7 +251,8 @@ describe('KsmService', () => {
       const tempAuditRepo = makeAuditRepo();
       tempAuditRepo.create.mockReturnValue({} as SecretAudit);
       tempAuditRepo.save.mockResolvedValue({} as SecretAudit);
-      const tempSvc = new KsmService(tempRepo, tempAuditRepo);
+      const tempDs = makeDataSource();
+      const tempSvc = new KsmService(tempRepo, tempAuditRepo, tempDs);
       tempSvc.onModuleInit();
       await tempSvc.createSecret('k', 'v', 'global' as SecretScope);
 
@@ -225,12 +261,25 @@ describe('KsmService', () => {
         encryptedValue: storedEncrypted,
         keyVersion: 3,
       } as Secret);
-      secretRepo.update.mockResolvedValue({ affected: 1, raw: [], generatedMaps: [] });
+
+      let capturedKeyVersion: number | undefined;
+      (dataSource.transaction as jest.Mock).mockImplementationOnce(
+        async (cb: (em: EntityManager) => Promise<void>) => {
+          const mockManager = {
+            update: jest.fn().mockImplementation((_entity: unknown, _id: unknown, data: Partial<Secret>) => {
+              capturedKeyVersion = data.keyVersion;
+              return Promise.resolve({ affected: 1 });
+            }),
+            create: jest.fn().mockImplementation((_entity: unknown, data: unknown) => ({ ...data as object })),
+            save: jest.fn().mockResolvedValue({}),
+          } as unknown as EntityManager;
+          await cb(mockManager);
+        },
+      );
 
       await service.rotateSecret('k', 'new-v', 'global' as SecretScope);
 
-      const updateCall = secretRepo.update.mock.calls[0] as [string, Partial<Secret>];
-      expect(updateCall[1].keyVersion).toBe(4);
+      expect(capturedKeyVersion).toBe(4);
     });
   });
 });

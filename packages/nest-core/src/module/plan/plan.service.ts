@@ -184,6 +184,13 @@ export class PlanService implements OnModuleInit {
         correlationId: plan.id,
         conversationId: plan.conversationId ?? undefined,
       });
+      await this.events.publish({
+        type: 'plan.recovered',
+        channel: QUEUE_WORKFLOW_EVENTS,
+        payload: { planId: plan.id, projectId: plan.projectId, recovered: true },
+        correlationId: plan.id,
+        conversationId: plan.conversationId ?? undefined,
+      });
       this.logger.warn(`Recovered interrupted plan ${plan.id} → re-queued`);
     }
 

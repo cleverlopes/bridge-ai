@@ -8,6 +8,7 @@ import {
   QUEUE_EXECUTION_JOBS,
   QUEUE_WORKFLOW_EVENTS,
 } from './events.service';
+import { ProjectEventsWorker } from './project-events.worker';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import {
       { name: QUEUE_WORKFLOW_EVENTS },
     ),
   ],
-  providers: [EventsService],
+  providers: [EventsService, ProjectEventsWorker],
   exports: [EventsService],
 })
 export class EventsModule {}

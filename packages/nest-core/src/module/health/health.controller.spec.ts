@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HealthController } from './health.controller';
 import { HealthCheckService, TypeOrmHealthIndicator } from '@nestjs/terminus';
-import { BrainService } from '../brain/brain.service';
-import type { HealthCheckResult, HealthIndicatorResult } from '@nestjs/terminus';
+import type { HealthIndicatorResult } from '@nestjs/terminus';
+import { getQueueToken } from '@nestjs/bull';
+import { QUEUE_PROJECT_EVENTS } from '../events/events.service';
 
 const makeHealthCheckService = () => ({
   check: jest.fn(),
@@ -12,29 +13,29 @@ const makeTypeOrmHealthIndicator = () => ({
   pingCheck: jest.fn<Promise<HealthIndicatorResult>, [string]>(),
 });
 
-const makeBrainService = () => ({
-  checkProvider: jest.fn<Promise<{ healthy: boolean; provider: string; error?: string }>, []>(),
-  generate: jest.fn(),
-  setProjectProvider: jest.fn(),
+const makeQueue = (hasPing = true) => ({
+  client: hasPing
+    ? { ping: jest.fn<Promise<string>, []>().mockResolvedValue('PONG') }
+    : undefined,
 });
 
 describe('HealthController', () => {
   let controller: HealthController;
   let healthCheckService: ReturnType<typeof makeHealthCheckService>;
   let typeOrmIndicator: ReturnType<typeof makeTypeOrmHealthIndicator>;
-  let brainService: ReturnType<typeof makeBrainService>;
+  let queue: ReturnType<typeof makeQueue>;
 
   beforeEach(async () => {
     healthCheckService = makeHealthCheckService();
     typeOrmIndicator = makeTypeOrmHealthIndicator();
-    brainService = makeBrainService();
+    queue = makeQueue();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [HealthController],
       providers: [
         { provide: HealthCheckService, useValue: healthCheckService },
         { provide: TypeOrmHealthIndicator, useValue: typeOrmIndicator },
-        { provide: BrainService, useValue: brainService },
+        { provide: getQueueToken(QUEUE_PROJECT_EVENTS), useValue: queue },
       ],
     }).compile();
 
@@ -42,71 +43,49 @@ describe('HealthController', () => {
   });
 
   describe('check()', () => {
-    it('calls health.check() with db ping and provider check', async () => {
-      const mockResult: HealthCheckResult = {
-        status: 'ok',
-        info: { db: { status: 'up' } },
-        error: {},
-        details: { db: { status: 'up' } },
-      };
-      healthCheckService.check.mockResolvedValue(mockResult);
-      typeOrmIndicator.pingCheck.mockResolvedValue({ db: { status: 'up' } });
-      brainService.checkProvider.mockResolvedValue({ healthy: true, provider: 'claude-cli' });
+    it('returns {status:ok,db:connected,redis:connected} when all checks pass', async () => {
+      healthCheckService.check.mockResolvedValue({ status: 'ok', info: {}, error: {}, details: {} });
 
       const result = await controller.check();
 
-      expect(healthCheckService.check).toHaveBeenCalledTimes(1);
-      expect(result).toBe(mockResult);
+      expect(result).toEqual({ status: 'ok', db: 'connected', redis: 'connected' });
     });
 
-    it('passes db pingCheck as one of the check functions', async () => {
-      let capturedChecks: Array<() => unknown> = [];
-      healthCheckService.check.mockImplementation(async (checks: Array<() => unknown>) => {
-        capturedChecks = checks;
-        return { status: 'ok', info: {}, error: {}, details: {} } as HealthCheckResult;
-      });
-      typeOrmIndicator.pingCheck.mockResolvedValue({ db: { status: 'up' } });
-      brainService.checkProvider.mockResolvedValue({ healthy: true, provider: 'mock' });
+    it('returns {status:error,db:error,...} when db check throws', async () => {
+      healthCheckService.check.mockRejectedValue(new Error('DB down'));
 
-      await controller.check();
+      const result = await controller.check();
 
-      expect(capturedChecks).toHaveLength(2);
-
-      // Execute the first check (db ping)
-      await capturedChecks[0]!();
-      expect(typeOrmIndicator.pingCheck).toHaveBeenCalledWith('db');
+      expect(result.db).toBe('error');
+      expect(result.status).toBe('error');
     });
 
-    it('provider check returns healthy status when brain is up', async () => {
-      let capturedChecks: Array<() => unknown> = [];
-      healthCheckService.check.mockImplementation(async (checks: Array<() => unknown>) => {
-        capturedChecks = checks;
-        return { status: 'ok', info: {}, error: {}, details: {} } as HealthCheckResult;
-      });
-      brainService.checkProvider.mockResolvedValue({ healthy: true, provider: 'openrouter' });
+    it('returns {status:error,...,redis:error} when redis ping throws', async () => {
+      healthCheckService.check.mockResolvedValue({ status: 'ok', info: {}, error: {}, details: {} });
+      (queue.client!.ping as jest.Mock).mockRejectedValue(new Error('Redis down'));
 
-      await controller.check();
+      const result = await controller.check();
 
-      const providerResult = await capturedChecks[1]!() as Record<string, unknown>;
-      expect((providerResult['providers'] as Record<string, unknown>)['status']).toBe('up');
+      expect(result.redis).toBe('error');
+      expect(result.status).toBe('error');
     });
 
-    it('provider check returns down status when brain is unhealthy', async () => {
-      let capturedChecks: Array<() => unknown> = [];
-      healthCheckService.check.mockImplementation(async (checks: Array<() => unknown>) => {
-        capturedChecks = checks;
-        return { status: 'ok', info: {}, error: {}, details: {} } as HealthCheckResult;
-      });
-      brainService.checkProvider.mockResolvedValue({
-        healthy: false,
-        provider: 'claude-cli',
-        error: 'CLI not available',
-      });
+    it('returns redis:error when BullMQ client has no ping', async () => {
+      healthCheckService.check.mockResolvedValue({ status: 'ok', info: {}, error: {}, details: {} });
 
-      await controller.check();
+      const moduleNoPing: TestingModule = await Test.createTestingModule({
+        controllers: [HealthController],
+        providers: [
+          { provide: HealthCheckService, useValue: healthCheckService },
+          { provide: TypeOrmHealthIndicator, useValue: typeOrmIndicator },
+          { provide: getQueueToken(QUEUE_PROJECT_EVENTS), useValue: makeQueue(false) },
+        ],
+      }).compile();
 
-      const providerResult = await capturedChecks[1]!() as Record<string, unknown>;
-      expect((providerResult['providers'] as Record<string, unknown>)['status']).toBe('down');
+      const ctrl = moduleNoPing.get<HealthController>(HealthController);
+      const result = await ctrl.check();
+
+      expect(result.redis).toBe('error');
     });
   });
 });

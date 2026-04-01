@@ -24,7 +24,9 @@ export class HumanGateBridge {
         const text =
           `*Phase ${ctx.phaseNumber}: ${ctx.phaseName}*\n\n` +
           `The GSD discuss step is complete. How would you like to proceed?\n\n` +
-          `Reply with:\n• \`approve\` — accept and continue\n• \`reject\` — stop execution\n• \`modify\` — modify the plan`;
+          `Gate key: \`${key}\`\n\n` +
+          `Reply with:\n• \`approve\` — accept and continue\n• \`reject\` — stop execution\n• \`modify\` — modify the plan` +
+          `\n\nOr use: \`/approve ${key}\``;
 
         await this.notifier.send(conversationId, text);
         this.logger.log(`HumanGate discuss waiting for planId=${planId} phase=${ctx.phaseNumber}`);
@@ -39,7 +41,9 @@ export class HumanGateBridge {
         const text =
           `*Phase ${ctx.phaseNumber} Verification ${success}*\n\n` +
           `Please review the verification result.\n\n` +
-          `Reply with:\n• \`accept\` — accept and continue\n• \`reject\` — reject the phase\n• \`retry\` — retry verification`;
+          `Gate key: \`${key}\`\n\n` +
+          `Reply with:\n• \`accept\` — accept and continue\n• \`reject\` — reject the phase\n• \`retry\` — retry verification` +
+          `\n\nOr use: \`/approve ${key}\``;
 
         await this.notifier.send(conversationId, text);
         this.logger.log(`HumanGate verify waiting for planId=${planId} phase=${ctx.phaseNumber}`);
@@ -53,7 +57,9 @@ export class HumanGateBridge {
         const errMsg = blocker.error ? `\n\n*Error:* ${blocker.error}` : '';
         const text =
           `*Blocker in Phase ${blocker.phaseNumber} — ${blocker.step}*${errMsg}\n\n` +
-          `Reply with:\n• \`retry\` — retry the step\n• \`skip\` — skip this step\n• \`stop\` — stop execution`;
+          `Gate key: \`${key}\`\n\n` +
+          `Reply with:\n• \`retry\` — retry the step\n• \`skip\` — skip this step\n• \`stop\` — stop execution` +
+          `\n\nOr use: \`/approve ${key}\``;
 
         await this.notifier.send(conversationId, text);
         this.logger.log(`HumanGate blocker waiting for planId=${planId} phase=${blocker.phaseNumber} step=${blocker.step}`);

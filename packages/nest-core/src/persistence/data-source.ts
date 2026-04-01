@@ -7,6 +7,7 @@ import { Plan } from "./entity/plan.entity";
 import { Project } from "./entity/project.entity";
 import { SecretAudit } from "./entity/secret-audit.entity";
 import { Secret } from "./entity/secret.entity";
+import { InitialSchema1711843200000 } from "./migrations/1711843200000-InitialSchema";
 
 const DATABASE_URL =
   process.env["DATABASE_URL"] ??
@@ -24,7 +25,7 @@ export const AppDataSource = new DataSource({
     Secret,
     SecretAudit,
   ],
-  migrations: ["src/migrations/*.ts"],
+  migrations: [InitialSchema1711843200000],
   synchronize: false,
   logging: process.env["NODE_ENV"] !== "production",
 });

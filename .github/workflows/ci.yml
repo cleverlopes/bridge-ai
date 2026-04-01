@@ -52,7 +52,6 @@ jobs:
 
       - name: Lint
         run: bunx nx run-many --target=lint --all --parallel=4
-        continue-on-error: true
 
       - name: Test (gsd-sdk)
         run: bun run test --coverage
