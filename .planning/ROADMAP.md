@@ -165,7 +165,7 @@ Build bridge-ai as an **AI Gateway for Controlled Engineering**: a self-hosted f
 
 ### Phase 8.5 — Workspace Onboarding + Repo Indexing
 
-**Status:** Not started
+**Status:** Planning complete
 
 **Objective:** Mandatory onboarding for existing repositories. Register a project from an existing Git repo (workspace path or repo URL), detect remote and base branch, generate initial docs and vault structure, and establish the safe execution model: **host repo is the source of truth; each run uses an ephemeral workspace clone; promotion is explicit**.
 
@@ -190,6 +190,16 @@ Build bridge-ai as an **AI Gateway for Controlled Engineering**: a self-hosted f
   - Per-run ephemeral workspace (clone/copy model)
   - Container mounts only the ephemeral workspace, never the host repo with write access
   - Promotion options: `git apply`, `git cherry-pick`, or `git push` from workspace
+
+**Plans:** 6 plans
+
+Plans:
+- [ ] 8.5-01-PLAN.md — Foundation: entity, migration, module scaffold, types, simple-git
+- [ ] 8.5-02-PLAN.md — CLI package: @bridge-ai/cli with bridge binary and lazy daemon
+- [ ] 8.5-03-PLAN.md — Onboarding service + repo indexer implementation with tests
+- [ ] 8.5-04-PLAN.md — GSD InitRunner brownfield adaptation
+- [ ] 8.5-05-PLAN.md — Ephemeral workspace, promotion, incremental sync, pipeline integration
+- [ ] 8.5-06-PLAN.md — CLI-to-daemon wiring and end-to-end verification
 
 **Success Criteria:**
 - [ ] Project can be registered from `workspace_path` on a VPS
