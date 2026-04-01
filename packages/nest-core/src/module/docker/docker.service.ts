@@ -85,13 +85,16 @@ export class DockerService implements OnModuleInit {
           return;
         }
 
+        const stdoutStream = new PassThrough();
+        const stderrStream = new PassThrough();
+
+        this.docker.modem.demuxStream(stream, stdoutStream, stderrStream);
+
         const stdoutChunks: Buffer[] = [];
         const stderrChunks: Buffer[] = [];
 
-        const stdoutWriter = { write: (chunk: Buffer) => { stdoutChunks.push(chunk); } };
-        const stderrWriter = { write: (chunk: Buffer) => { stderrChunks.push(chunk); } };
-
-        this.docker.modem.demuxStream(stream, stdoutWriter, stderrWriter);
+        stdoutStream.on('data', (chunk: Buffer) => stdoutChunks.push(chunk));
+        stderrStream.on('data', (chunk: Buffer) => stderrChunks.push(chunk));
 
         stream.on('end', () => {
           exec.inspect().then((inspect) => {
