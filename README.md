@@ -142,3 +142,7 @@ bun run migration:revert
 - `docs/PROJECT.md`
 - `.planning/PROJECT.md`
 
+## License
+
+MIT. See `LICENSE`.
+
