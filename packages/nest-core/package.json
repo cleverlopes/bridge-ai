@@ -28,7 +28,7 @@
     "typeorm": "^0.3.20"
   },
   "devDependencies": {
-    "@types/dockerode": "^3.3.29",
+    "@types/dockerode": "^4.0.1",
     "@types/node": "^22.0.0",
     "typescript": "^5.4.5"
   },
