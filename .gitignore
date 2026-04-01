@@ -1,0 +1,12 @@
+cache
+workspace-data
+node_modules
+dist
+tmp
+.env
+
+ai-jail
+gsd-brain
+
+volumes/workspaces/
+volumes/obsidian/

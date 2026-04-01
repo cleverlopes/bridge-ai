@@ -13,9 +13,6 @@ export {
 export { SecretAction, SecretAudit } from './persistence/entity/secret-audit.entity';
 export { Secret, SecretScope } from './persistence/entity/secret.entity';
 
-export { BrainModule } from './module/brain/brain.module';
-export { BrainService } from './module/brain/brain.service';
-export type { BrainGenerateOptions } from './module/brain/brain.service';
 export { EventsModule } from './module/events/events.module';
 export {
   EventsService,
@@ -24,10 +21,13 @@ export {
 export { HealthModule } from './module/health/health.module';
 export { KsmModule } from './module/ksm/ksm.module';
 export { KsmService } from './module/ksm/ksm.service';
-export { PlanModule } from './module/plan/plan.module';
-export { PlanService } from './module/plan/plan.service';
 export { ProjectModule } from './module/project/project.module';
 export { ProjectService } from './module/project/project.service';
+export { BrainModule } from './module/brain/brain.module';
+export { BrainService } from './module/brain/brain.service';
+export { PlanModule } from './module/plan/plan.module';
+export { PlanService } from './module/plan/plan.service';
 export { TelegramModule } from './module/telegram/telegram.module';
-export { TelegramNotifierService } from './module/telegram/telegram-notifier.service';
-export { ConversationStateService } from './module/telegram/conversation-state.service';
+export { PipelineModule } from './module/pipeline/pipeline.module';
+export { PipelineService } from './module/pipeline/pipeline.service';
+export { WorkspaceService } from './module/pipeline/workspace.service';

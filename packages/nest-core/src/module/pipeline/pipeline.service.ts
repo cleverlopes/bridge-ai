@@ -1,0 +1,152 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { resolve } from 'node:path';
+import { GSD, ObsidianTransport, PostgresTransport, GSDEventType } from '@bridge-ai/gsd-sdk';
+import type { GSDEvent, GSDPhaseStartEvent, GSDPhaseCompleteEvent, GSDMilestoneStartEvent, GSDCostUpdateEvent } from '@bridge-ai/gsd-sdk';
+import { BrainService } from '../brain/brain.service';
+import { PlanService } from '../plan/plan.service';
+import { EventsService, QUEUE_WORKFLOW_EVENTS } from '../events/events.service';
+import { TelegramNotifierService } from '../telegram/telegram-notifier.service';
+import { WorkspaceService } from './workspace.service';
+import { HumanGateBridge } from './human-gate.bridge';
+
+const OBSIDIAN_VAULT_PATH = resolve(process.cwd(), 'volumes', 'obsidian');
+
+@Injectable()
+export class PipelineService {
+  private readonly logger = new Logger(PipelineService.name);
+
+  constructor(
+    private readonly brain: BrainService,
+    private readonly plans: PlanService,
+    private readonly events: EventsService,
+    private readonly notifier: TelegramNotifierService,
+    private readonly workspace: WorkspaceService,
+    private readonly humanGate: HumanGateBridge,
+  ) {}
+
+  async executeProject(planId: string): Promise<void> {
+    const plan = await this.plans.startExecution(planId);
+    const projectId = plan.projectId;
+    const conversationId = plan.conversationId ?? null;
+    const prompt = plan.prompt ?? '';
+
+    const workspacePath = this.workspace.provisionWorkspace(projectId, planId);
+
+    const gsd = new GSD({
+      projectDir: workspacePath,
+      adapter: this.brain,
+      autoMode: false,
+    });
+
+    gsd.addTransport(new ObsidianTransport({ vaultPath: OBSIDIAN_VAULT_PATH }));
+
+    gsd.addTransport(
+      new PostgresTransport({
+        onEvent: (event: GSDEvent) => {
+          this.events
+            .publish({
+              type: `gsd.${event.type}`,
+              channel: QUEUE_WORKFLOW_EVENTS,
+              payload: event as unknown as Record<string, unknown>,
+              correlationId: planId,
+              conversationId: conversationId ?? undefined,
+            })
+            .catch((err: unknown) => {
+              this.logger.warn(`Failed to persist GSD event ${event.type}: ${err instanceof Error ? err.message : err}`);
+            });
+        },
+      }),
+    );
+
+    gsd.onEvent((event: GSDEvent) => {
+      this.forwardEventToTelegram(event, conversationId, planId).catch((err: unknown) => {
+        this.logger.warn(`Failed to forward event to Telegram: ${err instanceof Error ? err.message : err}`);
+      });
+    });
+
+    const humanGateCallbacks = conversationId
+      ? this.humanGate.buildCallbacks(conversationId, planId)
+      : undefined;
+
+    try {
+      const result = await gsd.run(prompt, { callbacks: humanGateCallbacks });
+
+      if (result.success) {
+        await this.plans.completePlan(planId);
+        if (conversationId) {
+          await this.notifier.send(
+            conversationId,
+            `✅ *Plan complete!*\n\nTotal cost: $${result.totalCostUsd.toFixed(4)}\nPhases completed: ${result.phases.length}`,
+          );
+        }
+      } else {
+        const lastError = result.phases.find(p => !p.success);
+        const reason = lastError ? `Phase ${lastError.phaseNumber} failed` : 'Execution failed';
+        await this.plans.failPlan(planId, reason);
+        if (conversationId) {
+          await this.notifier.send(conversationId, `❌ *Plan failed:* ${reason}`);
+        }
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Pipeline execution error for plan ${planId}: ${message}`);
+      await this.plans.failPlan(planId, message);
+      if (conversationId) {
+        await this.notifier.send(conversationId, `❌ *Pipeline error:* ${message}`);
+      }
+    } finally {
+      gsd.eventStream.closeAll();
+    }
+  }
+
+  private async forwardEventToTelegram(
+    event: GSDEvent,
+    conversationId: string | null,
+    planId: string,
+  ): Promise<void> {
+    if (!conversationId) return;
+
+    switch (event.type) {
+      case GSDEventType.MilestoneStart: {
+        const e = event as GSDMilestoneStartEvent;
+        await this.notifier.send(
+          conversationId,
+          `⚙ Starting execution: ${e.phaseCount} phases`,
+        );
+        break;
+      }
+      case GSDEventType.PhaseStart: {
+        const e = event as GSDPhaseStartEvent;
+        await this.notifier.send(
+          conversationId,
+          `▶ Starting Phase ${e.phaseNumber}: ${e.phaseName}...`,
+        );
+        break;
+      }
+      case GSDEventType.PhaseComplete: {
+        const e = event as GSDPhaseCompleteEvent;
+        const mins = Math.floor(e.totalDurationMs / 60000);
+        const secs = Math.floor((e.totalDurationMs % 60000) / 1000);
+        const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+        const costStr = `$${e.totalCostUsd.toFixed(4)}`;
+        await this.notifier.send(
+          conversationId,
+          `✓ Phase ${e.phaseNumber} complete — ${timeStr}, ${costStr}`,
+        );
+        break;
+      }
+      case GSDEventType.CostUpdate: {
+        const e = event as GSDCostUpdateEvent;
+        await this.notifier.send(
+          conversationId,
+          `💰 Cost so far: $${e.cumulativeCostUsd.toFixed(4)}`,
+        );
+        break;
+      }
+      default:
+        break;
+    }
+
+    void planId;
+  }
+}

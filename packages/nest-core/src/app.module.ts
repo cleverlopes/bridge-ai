@@ -9,13 +9,14 @@ import { Plan } from './persistence/entity/plan.entity';
 import { Project } from './persistence/entity/project.entity';
 import { Secret } from './persistence/entity/secret.entity';
 import { SecretAudit } from './persistence/entity/secret-audit.entity';
-import { BrainModule } from './module/brain/brain.module';
 import { EventsModule } from './module/events/events.module';
 import { HealthModule } from './module/health/health.module';
 import { KsmModule } from './module/ksm/ksm.module';
-import { PlanModule } from './module/plan/plan.module';
 import { ProjectModule } from './module/project/project.module';
+import { BrainModule } from './module/brain/brain.module';
+import { PlanModule } from './module/plan/plan.module';
 import { TelegramModule } from './module/telegram/telegram.module';
+import { PipelineModule } from './module/pipeline/pipeline.module';
 
 @Module({
   imports: [
@@ -45,13 +46,14 @@ import { TelegramModule } from './module/telegram/telegram.module';
       }),
     }),
 
-    BrainModule,
     HealthModule,
     KsmModule,
     EventsModule,
-    PlanModule,
     ProjectModule,
+    BrainModule,
+    PlanModule,
     TelegramModule,
+    PipelineModule,
   ],
 })
 export class AppModule {}
