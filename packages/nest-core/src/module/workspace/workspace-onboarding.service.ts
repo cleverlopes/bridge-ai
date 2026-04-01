@@ -9,6 +9,7 @@ import { Project } from '../../persistence/entity/project.entity';
 import { KsmService } from '../ksm/ksm.service';
 import { SecretScope } from '../../persistence/entity/secret.entity';
 import { RepoInfo, IndexPayload, InitWorkspaceDto } from './types';
+import { RepoIndexerService } from './repo-indexer.service';
 
 @Injectable()
 export class WorkspaceOnboardingService {
@@ -20,6 +21,7 @@ export class WorkspaceOnboardingService {
     @InjectRepository(Project)
     private readonly projectRepo: Repository<Project>,
     private readonly ksm: KsmService,
+    private readonly repoIndexer: RepoIndexerService,
   ) {}
 
   async initWorkspace(dto: InitWorkspaceDto): Promise<{ project: Project; snapshot: WorkspaceSnapshot }> {
@@ -47,20 +49,8 @@ export class WorkspaceOnboardingService {
       this.logger.log(`Created project ${project.id} (${project.slug})`);
     }
 
-    // Build a basic index payload from repo info
-    const indexPayload: IndexPayload = {
-      tree: [],
-      manifests: [],
-      entrypoints: [],
-      testPaths: [],
-      docPaths: [],
-      remoteUrl: repoInfo.remoteUrl,
-      remoteName: repoInfo.remoteName,
-      baseBranch: repoInfo.baseBranch,
-      currentBranch: repoInfo.currentBranch,
-      headSha: repoInfo.headSha,
-      indexedAt: new Date().toISOString(),
-    };
+    // Bootstrap-index the repo using RepoIndexerService
+    const indexPayload = await this.repoIndexer.bootstrap(dto.workspacePath, repoInfo);
 
     // Persist the snapshot
     const snapshot = await this.persistSnapshot(project.id, dto.workspacePath, repoInfo, indexPayload);
