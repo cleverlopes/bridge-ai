@@ -1,0 +1,27 @@
+{
+  "name": "@bridge-ai/cli",
+  "version": "0.1.0",
+  "description": "Bridge AI CLI — workspace onboarding and daemon control",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "bridge": "./bin/bridge.js"
+  },
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --outDir dist",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "tsup": "*",
+    "tsx": "*",
+    "typescript": "*"
+  }
+}
