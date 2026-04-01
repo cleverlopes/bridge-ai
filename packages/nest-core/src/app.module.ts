@@ -20,6 +20,7 @@ import { PipelineModule } from './module/pipeline/pipeline.module';
 import { DockerModule } from './module/docker/docker.module';
 import { MetricsModule } from './module/metrics/metrics.module';
 import { ObsidianModule } from './module/obsidian/obsidian.module';
+import { WorkspaceModule } from './module/workspace/workspace.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { ObsidianModule } from './module/obsidian/obsidian.module';
     DockerModule,
     MetricsModule,
     ObsidianModule,
+    WorkspaceModule,
   ],
 })
 export class AppModule {}
