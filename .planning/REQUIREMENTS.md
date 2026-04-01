@@ -90,9 +90,9 @@ This milestone establishes the foundation for controlled, brownfield-first engin
 - [ ] **ONBOARD-01**: `gateway init` accepts `--workspace <path>` or `--repo <url>` + `--workspace <path>` ✓ Phase 8.5
 - [ ] **ONBOARD-02**: Validate Git repo; detect main remote, base branch, current branch, dirty state ✓ Phase 8.5
 - [ ] **ONBOARD-03**: Auth contract: SSH or HTTPS; validate read/write before registering the project ✓ Phase 8.5
-- [ ] **ONBOARD-04**: Generate initial vault docs for an onboarded repo: `project.md`, `architecture.md`, `stack.md`, `decisions.md`, `runbook.md` ✓ Phase 8.5
+- [x] **ONBOARD-04**: Generate initial vault docs for an onboarded repo: `project.md`, `architecture.md`, `stack.md`, `decisions.md`, `runbook.md` ✓ Phase 8.5
 - [ ] **ONBOARD-05**: Persist onboarding/index snapshot in PostgreSQL (`workspace_snapshots`) ✓ Phase 8.5
-- [ ] **ONBOARD-06**: Full bootstrap indexing on first onboarding ✓ Phase 8.5
+- [x] **ONBOARD-06**: Full bootstrap indexing on first onboarding ✓ Phase 8.5
 - [ ] **ONBOARD-07**: Incremental indexing/sync on branch/commit/structure changes ✓ Phase 8.5
 - [ ] **ONBOARD-08**: Safe workspace model: each run uses an isolated ephemeral workspace clone ✓ Phase 8.5
 - [ ] **ONBOARD-09**: Container never mounts host repo with write permissions; container only sees the ephemeral workspace ✓ Phase 8.5

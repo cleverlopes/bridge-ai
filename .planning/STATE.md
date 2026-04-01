@@ -1,6 +1,6 @@
 # Project State: bridge-ai
 
-**Last updated:** 2026-04-01
+**Last updated:** 2026-04-01 (updated by 8.5-02 execution)
 
 ---
 
@@ -16,8 +16,8 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 ## Current Position
 
 **Milestone:** 2 — Four-Plane Foundation
-**Phase:** 8.5 (next to start — Workspace Onboarding + Repo Indexing)
-**Plans:** None created yet for Phase 8.5
+**Phase:** 8.5 (in progress — Workspace Onboarding + Repo Indexing)
+**Plans:** 8.5-02 complete (RepoIndexerService)
 
 **Milestone 1 (MVP):** ✅ Complete — Phases 1–6 all committed
 **Milestone 2 progress:** 2 of 7 phases mostly done, 5 not started
@@ -36,7 +36,7 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 | 6 | Obsidian Vault Sync | ✅ Complete | |
 | 7 | Test Coverage + CI | ✅ Mostly done | Gap: CI doesn't enforce coverage threshold as failing gate |
 | 8 | Security Hardening | ✅ Mostly done | Gap: docs/SECURITY.md not written. Throttling IS implemented. |
-| 8.5 | Workspace Onboarding + Repo Indexing | 🔲 Not started | Mandatory for brownfield MVP; establishes safe per-run workspace model |
+| 8.5 | Workspace Onboarding + Repo Indexing | 🔄 In progress | Plan 02 complete: RepoIndexerService. Plans 01, 03, 04 pending. |
 | 8.6 | Telegram Refactor (Deterministic Protocol) | 🔲 Not started | Commands + context-bound natural language; Telegram never chooses target |
 | 9 | Policy Engine + Execution Profiles | 🔲 Not started | Read-only / Guided / Autonomous; allowlists; deny-by-default posture |
 | 10 | Loop Engine / Ralph | 🔲 Not started | plan → execute → validate → repair → repeat with hard iteration limits |
@@ -56,6 +56,8 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 | Reprioritize Milestone 2 to four-plane foundation | Onboarding + deterministic channels + policy + loop + vault memory are pre-reqs for safe autonomy | 2026-04-01 |
 | Workspace isolation per run (ephemeral clones) | Prevent agent from touching host repo directly; enable rollback and explicit promotion | 2026-04-01 |
 | Telegram deterministic protocol | Chat carries intent; daemon resolves context; commands for risky actions | 2026-04-01 |
+| RepoIndexerService static constants for limits | MAX_TREE_ENTRIES=2000 and MAX_DEPTH=3 as static readonly class constants; tree walk returns truncated boolean by reference mutation | 2026-04-01 |
+| workspace module created minimal in 8.5-02 | Parallel execution: types.ts and workspace.module.ts skeleton created in 8.5-02 to unblock it; content matches 8.5-01 spec exactly for merge compatibility | 2026-04-01 |
 
 ---
 
@@ -80,7 +82,8 @@ See: `.planning/PROJECT.md` (updated 2026-04-01)
 ## Session Continuity
 
 **GSD planning initialized:** 2026-04-01
-**Next action:** `/gsd:plan-phase 8.5` — Workspace Onboarding + Repo Indexing
+**Last session:** 2026-04-01 — Completed 8.5-02 (RepoIndexerService)
+**Next action:** Complete remaining Phase 8.5 plans (01, 03, 04)
 
 ---
 
