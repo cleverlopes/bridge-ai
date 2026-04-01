@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { resolve } from 'node:path';
 import { GSD, ObsidianTransport, PostgresTransport, GSDEventType } from '@bridge-ai/gsd-sdk';
 import type { GSDEvent, GSDPhaseStartEvent, GSDPhaseCompleteEvent, GSDMilestoneStartEvent, GSDCostUpdateEvent } from '@bridge-ai/gsd-sdk';
@@ -8,6 +8,7 @@ import { EventsService, QUEUE_WORKFLOW_EVENTS } from '../events/events.service';
 import { TelegramNotifierService } from '../telegram/telegram-notifier.service';
 import { WorkspaceService } from './workspace.service';
 import { HumanGateBridge } from './human-gate.bridge';
+import { DockerService } from '../docker/docker.service';
 
 const OBSIDIAN_VAULT_PATH = resolve(process.cwd(), 'volumes', 'obsidian');
 
@@ -22,6 +23,7 @@ export class PipelineService {
     private readonly notifier: TelegramNotifierService,
     private readonly workspace: WorkspaceService,
     private readonly humanGate: HumanGateBridge,
+    @Optional() private readonly docker: DockerService | null,
   ) {}
 
   async executeProject(planId: string): Promise<void> {
@@ -31,6 +33,16 @@ export class PipelineService {
     const prompt = plan.prompt ?? '';
 
     const workspacePath = this.workspace.provisionWorkspace(projectId, planId);
+
+    let containerId: string | null = null;
+    if (this.docker) {
+      try {
+        containerId = await this.docker.createContainer(projectId, workspacePath);
+        this.logger.log(`Container ${containerId.slice(0, 12)} ready for project ${projectId}`);
+      } catch (err) {
+        this.logger.warn(`Failed to create Docker container for ${projectId}: ${err instanceof Error ? err.message : err}. Continuing without container.`);
+      }
+    }
 
     const gsd = new GSD({
       projectDir: workspacePath,
@@ -96,6 +108,17 @@ export class PipelineService {
       }
     } finally {
       gsd.eventStream.closeAll();
+      await this.cleanupContainer(projectId, containerId);
+    }
+  }
+
+  private async cleanupContainer(projectId: string, containerId: string | null): Promise<void> {
+    if (!this.docker || !containerId) return;
+
+    try {
+      await this.docker.stopContainer(projectId);
+    } catch (err) {
+      this.logger.warn(`Failed to stop container for ${projectId}: ${err instanceof Error ? err.message : err}`);
     }
   }
 

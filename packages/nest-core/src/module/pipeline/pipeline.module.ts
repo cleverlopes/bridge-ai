@@ -4,6 +4,7 @@ import { BrainModule } from '../brain/brain.module';
 import { PlanModule } from '../plan/plan.module';
 import { TelegramModule } from '../telegram/telegram.module';
 import { EventsModule } from '../events/events.module';
+import { DockerModule } from '../docker/docker.module';
 import { QUEUE_EXECUTION_JOBS } from '../events/events.service';
 import { PipelineService } from './pipeline.service';
 import { WorkspaceService } from './workspace.service';
@@ -17,6 +18,7 @@ import { ExecutionWorker } from './execution.worker';
     PlanModule,
     TelegramModule,
     EventsModule,
+    DockerModule,
   ],
   providers: [PipelineService, WorkspaceService, HumanGateBridge, ExecutionWorker],
   exports: [PipelineService, WorkspaceService],

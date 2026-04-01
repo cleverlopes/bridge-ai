@@ -31,3 +31,5 @@ export { TelegramModule } from './module/telegram/telegram.module';
 export { PipelineModule } from './module/pipeline/pipeline.module';
 export { PipelineService } from './module/pipeline/pipeline.service';
 export { WorkspaceService } from './module/pipeline/workspace.service';
+export { DockerModule } from './module/docker/docker.module';
+export { DockerService } from './module/docker/docker.service';

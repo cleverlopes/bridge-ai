@@ -17,6 +17,7 @@ import { BrainModule } from './module/brain/brain.module';
 import { PlanModule } from './module/plan/plan.module';
 import { TelegramModule } from './module/telegram/telegram.module';
 import { PipelineModule } from './module/pipeline/pipeline.module';
+import { DockerModule } from './module/docker/docker.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { PipelineModule } from './module/pipeline/pipeline.module';
     PlanModule,
     TelegramModule,
     PipelineModule,
+    DockerModule,
   ],
 })
 export class AppModule {}

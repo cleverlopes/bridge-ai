@@ -42,12 +42,26 @@ services:
       PORT: 3000
     ports:
       - '3000:3000'
+    volumes:
+      - ./volumes/workspaces:/app/volumes/workspaces
+      - ./volumes/obsidian:/app/volumes/obsidian
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - default
+      - bridge-ai-projects
 
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  bridge-ai-projects:
+    name: bridge-ai-projects
+    driver: bridge
+    labels:
+      bridge-ai.managed: 'true'
