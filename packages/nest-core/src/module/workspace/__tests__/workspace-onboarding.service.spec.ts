@@ -60,7 +60,7 @@ const mockRepoInfo: RepoInfo = {
 
 const mockIndexPayload: IndexPayload = {
   tree: ['src/', 'package.json'],
-  manifests: [{ path: 'package.json', type: 'npm', content: { name: 'test' } }],
+  manifests: [{ path: 'package.json', type: 'package.json', content: '{"name":"test"}' }],
   entrypoints: ['src/main.ts'],
   testPaths: ['src/__tests__/'],
   docPaths: ['README.md'],
@@ -69,6 +69,7 @@ const mockIndexPayload: IndexPayload = {
   baseBranch: 'main',
   currentBranch: 'main',
   headSha: 'abc1234def5678901234567890123456789012',
+  truncated: false,
   indexedAt: '2026-04-01T00:00:00.000Z',
 };
 

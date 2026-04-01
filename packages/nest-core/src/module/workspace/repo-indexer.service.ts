@@ -19,14 +19,14 @@ export class RepoIndexerService {
   static readonly MAX_TREE_ENTRIES = 2000;
   static readonly MAX_DEPTH = 3;
 
-  private static readonly MANIFEST_PATTERNS: Record<string, string> = {
-    'package.json': 'npm',
-    'pyproject.toml': 'python',
-    'Cargo.toml': 'rust',
-    'go.mod': 'go',
-    'pom.xml': 'maven',
-    'build.gradle': 'gradle',
-    'build.gradle.kts': 'gradle',
+  private static readonly MANIFEST_PATTERNS: Record<string, ManifestEntry['type']> = {
+    'package.json': 'package.json',
+    'pyproject.toml': 'pyproject.toml',
+    'Cargo.toml': 'Cargo.toml',
+    'go.mod': 'go.mod',
+    'pom.xml': 'pom.xml',
+    'build.gradle': 'build.gradle',
+    'build.gradle.kts': 'build.gradle',
   };
 
   private static readonly ENTRYPOINT_PATTERNS = new Set([
@@ -74,7 +74,7 @@ export class RepoIndexerService {
       Promise.resolve(this.detectDocPaths(tree)),
     ]);
 
-    const payload: IndexPayload = {
+    return {
       tree,
       manifests,
       entrypoints,
@@ -85,14 +85,9 @@ export class RepoIndexerService {
       baseBranch: repoInfo.baseBranch,
       currentBranch: repoInfo.currentBranch,
       headSha: repoInfo.headSha,
+      truncated,
       indexedAt: new Date().toISOString(),
     };
-
-    if (truncated) {
-      payload.truncated = true;
-    }
-
-    return payload;
   }
 
   /**
@@ -207,18 +202,7 @@ export class RepoIndexerService {
       for (const matchPath of matches) {
         try {
           const fullPath = join(workspacePath, matchPath);
-          const rawContent = await readFile(fullPath, 'utf-8');
-          let content: Record<string, unknown>;
-
-          if (type === 'npm') {
-            try {
-              content = JSON.parse(rawContent) as Record<string, unknown>;
-            } catch {
-              content = { raw: rawContent };
-            }
-          } else {
-            content = { raw: rawContent };
-          }
+          const content = await readFile(fullPath, 'utf-8');
 
           manifests.push({ path: matchPath, type, content });
         } catch (err) {

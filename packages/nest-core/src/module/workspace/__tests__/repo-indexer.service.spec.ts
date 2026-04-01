@@ -126,8 +126,8 @@ describe('RepoIndexerService', () => {
       expect(result.manifests).toHaveLength(1);
       expect(result.manifests[0]).toMatchObject({
         path: 'package.json',
-        type: 'npm',
-        content: { name: 'my-package', version: '2.0.0' },
+        type: 'package.json',
+        content: expect.stringContaining('my-package'),
       });
     });
 
@@ -142,8 +142,8 @@ describe('RepoIndexerService', () => {
       const result = await service.bootstrap('/repo', BASE_REPO_INFO);
 
       const types = result.manifests.map((m) => m.type);
-      expect(types).toContain('python');
-      expect(types).toContain('rust');
+      expect(types).toContain('pyproject.toml');
+      expect(types).toContain('Cargo.toml');
     });
 
     it('should detect go.mod as go manifest', async () => {
@@ -153,7 +153,7 @@ describe('RepoIndexerService', () => {
 
       const result = await service.bootstrap('/repo', BASE_REPO_INFO);
 
-      expect(result.manifests.some((m) => m.type === 'go')).toBe(true);
+      expect(result.manifests.some((m) => m.type === 'go.mod')).toBe(true);
     });
 
     it('should detect entrypoints (src/main.ts, src/index.ts)', async () => {
