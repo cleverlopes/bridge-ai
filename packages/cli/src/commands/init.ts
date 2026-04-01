@@ -10,7 +10,7 @@
 
 import { spawn, type ChildProcess } from 'node:child_process';
 import { resolve } from 'node:path';
-import { BridgeClient } from '../client.js';
+import { DaemonClient } from '../client.js';
 
 export interface InitOptions {
   workspace: string;
@@ -18,6 +18,8 @@ export interface InitOptions {
   credentialType?: 'ssh' | 'https';
   port?: number;
   daemonBin?: string;
+  name?: string;
+  slug?: string;
 }
 
 const DEFAULT_PORT = 3000;
@@ -41,7 +43,7 @@ export function spawnDaemon(daemonBin: string, port: number): ChildProcess {
 /**
  * Wait until the daemon is healthy or timeout elapses.
  */
-async function waitForDaemon(client: BridgeClient, timeoutMs: number): Promise<boolean> {
+async function waitForDaemon(client: DaemonClient, timeoutMs: number): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (await client.isHealthy()) return true;
@@ -56,7 +58,9 @@ async function waitForDaemon(client: BridgeClient, timeoutMs: number): Promise<b
 export async function runInit(options: InitOptions): Promise<void> {
   const port = options.port ?? DEFAULT_PORT;
   const workspacePath = resolve(options.workspace);
-  const client = new BridgeClient(`http://localhost:${port}`);
+  const projectName = options.name ?? workspacePath.split('/').pop() ?? 'unnamed';
+  const projectSlug = options.slug ?? projectName.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-|-$/g, '');
+  const client = new DaemonClient(`http://localhost:${port}`);
 
   // Step 1: Check if daemon is already running
   const isRunning = await client.isHealthy();
@@ -85,10 +89,19 @@ export async function runInit(options: InitOptions): Promise<void> {
     workspacePath,
     repoUrl: options.repo,
     credentialType: options.credentialType,
+    projectName,
+    slug: projectSlug,
   });
 
   console.log('bridge: workspace initialized.');
-  console.log(`  projectId: ${result.projectId}`);
-  console.log(`  path:      ${result.workspacePath}`);
-  console.log(`  indexedAt: ${result.indexedAt}`);
+  if (result.success) {
+    console.log(`  projectId: ${result.projectId ?? '(pending)'}`);
+    console.log(`  slug:      ${result.slug}`);
+    if (result.vaultDocs?.length) {
+      console.log(`  vaultDocs: ${result.vaultDocs.join(', ')}`);
+    }
+  } else {
+    console.error(`bridge: onboarding failed: ${result.error ?? 'unknown error'}`);
+    process.exit(1);
+  }
 }
